@@ -323,11 +323,11 @@ QSA_CloseDevice(_THIS)
     if (this->hidden->audio_handle != NULL) {
         if (!this->hidden->iscapture) {
             /* Finish playing available samples */
-            snd_pcm_plugin_flush(this->hidden->audio_handle,
+            snd_pcm_plugin_drain(this->hidden->audio_handle,
                                  SND_PCM_CHANNEL_PLAYBACK);
         } else {
             /* Cancel unread samples during capture */
-            snd_pcm_plugin_flush(this->hidden->audio_handle,
+            snd_pcm_plugin_drain(this->hidden->audio_handle,
                                  SND_PCM_CHANNEL_CAPTURE);
         }
         snd_pcm_close(this->hidden->audio_handle);
