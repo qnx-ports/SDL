@@ -32,6 +32,8 @@
 
 #if SDL_AUDIO_DRIVER_QSA
 
+#if __QNX__ < 800
+
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -41,7 +43,12 @@
 #include <sched.h>
 #include <sys/select.h>
 #include <sys/neutrino.h>
+
+#ifdef DYNLOAD_QNX
+#include "qsa_symbol_list.h"
+#else
 #include <sys/asoundlib.h>
+#endif
 
 #include "SDL_timer.h"
 #include "SDL_audio.h"
@@ -73,6 +80,28 @@ uint32_t qsa_playback_devices;
 
 QSA_Device qsa_capture_device[QSA_MAX_DEVICES];
 uint32_t qsa_capture_devices;
+
+#ifdef DYNLOAD_QNX
+static void QSA_dlopen(){
+    qsa_dlhandle = dlopen("libasound.so", 0);
+    if(!qsa_dlhandle) error(1 ,"Failed to load libasound.so");
+
+    snd_cards               = dlsym(qsa_dlhandle, "snd_cards");
+    snd_card_get_name       = dlsym(qsa_dlhandle, "snd_card_get_name");
+    snd_card_get_longname   = dlsym(qsa_dlhandle, "snd_card_get_longname");
+    snd_close               = dlsym(qsa_dlhandle, "snd_close");
+    snd_pcm_file_descriptor = dlsym(qsa_dlhandle, "snd_pcm_file_descriptor");
+    snd_pcm_format_width    = dlsym(qsa_dlhandle, "snd_pcm_format_width");
+    snd_pcm_open            = dlsym(qsa_dlhandle, "snd_pcm_open");
+    snd_pcm_open_preferred  = dlsym(qsa_dlhandle, "snd_pcm_open_preferred");
+    snd_pcm_plugin_write    = dlsym(qsa_dlhandle, "snd_pcm_plugin_write");
+    snd_pcm_plugin_prepare  = dlsym(qsa_dlhandle, "snd_pcm_plugin_prepare");
+    snd_pcm_plugin_drain    = dlsym(qsa_dlhandle, "snd_pcm_plugin_drain");
+    snd_pcm_plugin_params   = dlsym(qsa_dlhandle, "snd_pcm_plugin_params");
+    snd_pcm_plugin_setup    = dlsym(qsa_dlhandle, "snd_pcm_plugin_setup");
+    snd_strerror            = dlsym(qsa_dlhandle, "snd_strerror");
+}
+#endif
 
 static SDL_INLINE int
 QSA_SetError(const char *fn, int status)
@@ -628,6 +657,9 @@ QSA_Deinitialize(void)
 static int
 QSA_Init(SDL_AudioDriverImpl * impl)
 {
+    #ifdef DYNLOAD_QNX
+    QSA_dlopen();
+    #endif
     /* Clear devices array */
     SDL_zeroa(qsa_playback_device);
     SDL_zeroa(qsa_capture_device);
@@ -661,6 +693,7 @@ AudioBootStrap QSAAUDIO_bootstrap = {
     "qsa", "QNX QSA Audio", QSA_Init, 0
 };
 
+#endif
 #endif /* SDL_AUDIO_DRIVER_QSA */
 
 /* vi: set ts=4 sw=4 expandtab: */
