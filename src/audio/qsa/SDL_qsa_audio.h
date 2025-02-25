@@ -24,7 +24,11 @@
 #ifndef __SDL_QSA_AUDIO_H__
 #define __SDL_QSA_AUDIO_H__
 
+#ifdef DYNLOAD_QNX
+#include "qsa_symbol_list.h"
+#else
 #include <sys/asoundlib.h>
+#endif
 
 #include "../SDL_sysaudio.h"
 
