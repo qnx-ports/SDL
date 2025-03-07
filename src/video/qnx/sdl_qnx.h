@@ -31,6 +31,8 @@ typedef struct
     screen_window_t window;
     EGLSurface      surface;
     EGLConfig       conf;
+    int             fs_lastsize[2];
+    SDL_bool        is_fullscreen;
 } window_impl_t;
 
 extern void handleKeyboardEvent(screen_event_t event);
