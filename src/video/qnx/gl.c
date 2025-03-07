@@ -35,6 +35,7 @@ chooseFormat(EGLConfig egl_conf)
 {
     EGLint buffer_bit_depth;
     EGLint alpha_bit_depth;
+    printf("EGL Config\n");
 
     eglGetConfigAttrib(egl_disp, egl_conf, EGL_BUFFER_SIZE, &buffer_bit_depth);
     eglGetConfigAttrib(egl_disp, egl_conf, EGL_ALPHA_SIZE, &alpha_bit_depth);
@@ -73,6 +74,7 @@ glGetConfig(EGLConfig *pconf, int *pformat)
     EGLint val;
     EGLBoolean rc;
     EGLint i;
+    printf("EGL getting config\n");//QNX
 
     // Determine the numbfer of configurations.
     rc = eglGetConfigs(egl_disp, NULL, 0, &egl_num_configs);
@@ -136,6 +138,8 @@ int
 glLoadLibrary(_THIS, const char *name)
 {
     EGLNativeDisplayType    disp_id = EGL_DEFAULT_DISPLAY;
+
+    printf("Loading gl Library\n");//QNX
 
     egl_disp = eglGetDisplay(disp_id);
     if (egl_disp == EGL_NO_DISPLAY) {
