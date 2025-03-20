@@ -102,14 +102,11 @@ handleKeyboardEvent(screen_event_t event)
     int             val;
     SDL_Scancode    scancode;
 
-    printf("SDL: KEYBOARD EVENT DETECTED\n");
-
     // Get the key value.
     if (screen_get_event_property_iv(event, SCREEN_PROPERTY_SYM, &val) < 0) {
         printf("Failed to get key w errno %d\n", errno);
         return;
     }
-    printf("SDL: seen key w val %d\n", val);
 
     // Skip unrecognized keys.
     if ((val < 0) || (val >= SDL_TABLESIZE(key_to_sdl))) {
