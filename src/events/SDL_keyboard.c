@@ -756,6 +756,7 @@ SDL_SendKeyboardKey(Uint8 state, SDL_Scancode scancode)
 
     /* Post the event, if desired */
     posted = 0;
+
     if (SDL_GetEventState(type) == SDL_ENABLE) {
         SDL_Event event;
         event.key.type = type;

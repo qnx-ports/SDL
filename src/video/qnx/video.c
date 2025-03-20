@@ -39,27 +39,25 @@ static int
 videoInit(_THIS)
 {
     SDL_VideoDisplay display;
-        printf("SDL QNX VIDEO INIT ATTEMPT\n");
 
-    if (screen_create_context(&context, 0) < 0) {
+    if (screen_create_context(&context, SCREEN_APPLICATION_CONTEXT) < 0) {
         return -1;
-        printf("CONTEXT CREATION FAILURE\n");
+        printf("qnx/video.c: | Context creation failure with errno %d\n", errno);
     }
 
     if (screen_create_event(&event) < 0) {
         return -1;
-        printf("EVENT CREATION FAILURE\n");
+        printf("qnx/video.c: | Event creation failure with errno %d\n", errno);
     }
 
     SDL_zero(display);
 
     if (SDL_AddVideoDisplay(&display) < 0) {
-        printf("SDL FUNCTION FAILURE\n");
+        printf("qnx/video.c: | SDL_AddVideoDisplay Failed.\n");
         return -1;
     }
 
     _this->num_displays = 1;
-    printf("PASSED INIT\n");
     return 0;
 }
 
@@ -96,7 +94,7 @@ createWindow(_THIS, SDL_Window *window)
     impl->fs_lastsize[1] = 1;
 
     // Create a native window.
-    if (screen_create_window(&(impl->window), context) < 0) {
+    if (screen_create_window_type(&(impl->window), context, SCREEN_APPLICATION_WINDOW) < 0) {
         goto fail;
     }
     
@@ -105,7 +103,7 @@ createWindow(_THIS, SDL_Window *window)
     size[1] = window->h;
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE,
                                       size) < 0) {
-        printf("SDL QNX WINDOW SIZE FAIL\n");
+        printf("qnx/video.c: | Setting SCREEN_PROPERTY_SIZE fail with errno %d\n", errno);
         goto fail;
     } //Sets buffer size and source size implicitly
 
@@ -121,10 +119,9 @@ createWindow(_THIS, SDL_Window *window)
 
     // Create window buffer(s).
     if (window->flags & SDL_WINDOW_OPENGL) {
-            printf("SDL QNX ATTEMPTING OPENGL \n");
 
         if (glGetConfig(&impl->conf, &format) < 0) {
-            printf("SDL QNX OPENGL FAIL \n");
+            printf("qnx/video.c: | SDL Could not get GL configs \n");
             goto fail;
         }
 
@@ -134,12 +131,12 @@ createWindow(_THIS, SDL_Window *window)
         usage = SCREEN_USAGE_OPENGL_ES2 | SCREEN_USAGE_OPENGL_ES3;
         if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_USAGE,
                                           &usage) < 0) {
-            printf("SDL QNX WINDOW SET OPENGL FAIL \n");
+            printf("qnx/video.c: | SDL could not set screen usage to OPENGL_ES2, OPENGL_ES3 \n");
             return -1;
         }
     } else {
         format = SCREEN_FORMAT_RGBX8888;
-        numbufs = 1;
+        numbufs = 2;
     }
 
     // Set pixel format 
@@ -199,7 +196,7 @@ createWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
         return -1;
     }
 
-    *format = SDL_PIXELFORMAT_RGB888;
+    *format = SDL_PIXELFORMAT_RGBX8888;
     return 0;
 }
 
@@ -220,12 +217,12 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
 
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
                                       (void **)&buffer) < 0) {
-        printf("Failure to get screen buffers %d\n", errno);
+        printf("qnx/video.c: | Failure to get screen buffers %d\n", errno);
         return -1;
     }
 
-    screen_post_window(impl->window, buffer, numrects, (int *)rects, 0);
-    screen_flush_context(context, 0);
+    if(screen_post_window(impl->window, buffer, numrects, (int *)rects, 0)) printf("qnx/video.c: | Screen Post Window error - errno%d\n", errno);
+    if(screen_flush_context(context, 0)) printf("qnx/video.c: | Screen flush context error - errno%d\n", errno);
     return 0;
 }
 
@@ -348,34 +345,34 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
     if(fullscreen == impl->is_fullscreen) return;
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
-        printf("qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
+        printf("qnx/video.c: |  qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
         return ;
     }
     disp = (screen_display_t*)calloc(ndevices, sizeof(screen_display_t));
     if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return ;
     }
     if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_SIZE, &fullscreen_size)){
-        printf("qnx getDisplayBounds Failed to query for size w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayBounds Failed to query for size w errno %d\n", errno);
         free(disp);
         return ;
     }
 
     if(fullscreen == SDL_TRUE){
         if(screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, impl->fs_lastsize)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return ;
         }
         if(screen_get_display_property_iv(disp, SCREEN_PROPERTY_SIZE, fullscreen_size)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return ;
         }
         if(screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, fullscreen_size)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return ;
         }
@@ -384,7 +381,7 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
         impl->is_fullscreen = SDL_TRUE;
     }else{
         if(screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, impl->fs_lastsize)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return ;
         }
@@ -406,17 +403,17 @@ int getDisplayBounds(_THIS, SDL_VideoDisplay * display, SDL_Rect * rect){
     int                 ndevices;
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
-        printf("qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
         return -1;
     }
     disp = (screen_display_t*)calloc(ndevices, sizeof(screen_display_t));
     if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return -1;
     }
     if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_SIZE, &size)){
-        printf("qnx getDisplayBounds Failed to query for size w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayBounds Failed to query for size w errno %d\n", errno);
         free(disp);
         return -1;
     }
@@ -425,8 +422,6 @@ int getDisplayBounds(_THIS, SDL_VideoDisplay * display, SDL_Rect * rect){
     rect->h = size[1];
     rect->x = 0;
     rect->y = 0;
-
-    printf("DEBUG: BOUNDS w%d h%d x%d y%d\n", rect->w, rect->h, rect->x, rect->y);
 
     free(disp);
     return 0;
@@ -460,20 +455,20 @@ int getDisplayDPI(_THIS, SDL_VideoDisplay * display, float * ddpi, float * hdpi,
     int                 size[2];
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
-        printf("qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
         return -1;
     }
     disp = (screen_display_t*)calloc(ndevices, sizeof(screen_display_t));
     
 
     if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
-        printf("qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
         free(disp);
         return -1;
     }
 
     if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_DPI, &dpi_as_int)){
-        printf("qnx getDisplayDPi Failed to query for dpi w errno %d\n", errno);
+        printf("qnx/video.c: | qnx getDisplayDPi Failed to query for dpi w errno %d\n", errno);
         free(disp);
         return -1;
     }
@@ -482,7 +477,7 @@ int getDisplayDPI(_THIS, SDL_VideoDisplay * display, float * ddpi, float * hdpi,
 
     if(ddpi){
         if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_SIZE, &size)){
-            printf("qnx getDisplayDPi Failed to query for size w errno %d\n", errno);
+            printf("qnx/video.c: | qnx getDisplayDPi Failed to query for size w errno %d\n", errno);
             free(disp);
             return -1;
         }
@@ -492,8 +487,6 @@ int getDisplayDPI(_THIS, SDL_VideoDisplay * display, float * ddpi, float * hdpi,
 
     if(hdpi) *hdpi = dpi_as_int[0];
     if(vdpi) *vdpi = dpi_as_int[1];
-
-    printf("DEBUG: DPI %d %d \n", dpi_as_int[0], dpi_as_int[1]);
 
     free(disp);
     return 0;
