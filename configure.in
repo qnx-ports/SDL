@@ -2107,6 +2107,10 @@ CheckQNXVideo()
         have_video=yes
         EXTRA_LDFLAGS="$EXTRA_LDFLAGS -lscreen -lEGL -lGLESv2"
         SUMMARY_video="${SUMMARY_video} qnx"
+        if test x$enable_joystick = xyes; then
+            AC_DEFINE(SDL_JOYSTICK_QNX, 1, [ ])
+            have_joystick=yes
+        fi
     fi
 }
 

@@ -36,6 +36,7 @@ typedef struct
 } window_impl_t;
 
 extern void handleKeyboardEvent(screen_event_t event);
+extern void handleJoystickEvent(screen_event_t event);
 
 extern int glGetConfig(EGLConfig *pconf, int *pformat);
 extern int glLoadLibrary(_THIS, const char *name);
