@@ -22,10 +22,7 @@
 #include "../SDL_sysvideo.h"
 #include "sdl_qnx.h"
 #include "errno.h"
-
-static screen_context_t context;
-static screen_event_t   event;
-static screen_window_t  test_win;
+#include "screen_consts.h"
 
 /**
  * Initializes the QNX video plugin.
@@ -253,6 +250,12 @@ pumpEvents(_THIS)
             handleKeyboardEvent(event);
             break;
 
+        #ifdef SDL_JOYSTICK_QNX
+        case SCREEN_EVENT_GAMEPAD:
+        case SCREEN_EVENT_JOYSTICK:
+            handleJoystickEvent(event);
+            break;
+        #endif
         default:
             break;
         }
@@ -500,6 +503,8 @@ static SDL_VideoDevice *
 createDevice(int devindex)
 {
     SDL_VideoDevice *device;
+
+    printf("Test QNX video \n");
 
     device = (SDL_VideoDevice *)SDL_calloc(1, sizeof(SDL_VideoDevice));
     if (device == NULL) {
