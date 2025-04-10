@@ -575,6 +575,10 @@ SDL_PrivateJoystickShouldIgnoreEvent()
         return SDL_FALSE;
     }
 
+#ifdef __QNX__
+    return SDL_FALSE;
+#endif
+
     if (SDL_WasInit(SDL_INIT_VIDEO)) {
         if (SDL_GetKeyboardFocus() == NULL) {
             /* Video is initialized and we don't have focus, ignore the event. */
@@ -661,6 +665,7 @@ SDL_PrivateJoystickAxis(SDL_Joystick * joystick, Uint8 axis, Sint16 value)
     int posted;
     const int MAX_ALLOWED_JITTER = SDL_JOYSTICK_AXIS_MAX / 80;  /* ShanWan PS3 controller needed 96 */
 
+    printf("Private Joystick Axis\n");
     /* Make sure we're not getting garbage or duplicate events */
     if (axis >= joystick->naxes) {
         return 0;

@@ -998,6 +998,13 @@ elseif(UNIX AND NOT APPLE AND NOT ANDROID)
     endif()
   endif()
 
+  if(QNX)
+    set(SDL_JOYSTICK_QNX 1)
+    file(GLOB JOYSTICK_SOURCES ${SDL2_SOURCE_DIR}/src/video/qnx/joystick.c)
+    set(SOURCE_FILES ${SOURCE_FILES} ${JOYSTICK_SOURCES})
+    set(HAVE_SDL_JOYSTICK TRUE)
+  endif()
+  
   CheckPTHREAD()
 
   if(CLOCK_GETTIME)

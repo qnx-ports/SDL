@@ -233,10 +233,13 @@ pumpEvents(_THIS)
     int             type;
 
     for (;;) {
+        if(!context) break;
         if (screen_get_event(context, event, 0) < 0) {
             break;
         }
 
+        if(!event) break;
+        
         if (screen_get_event_property_iv(event, SCREEN_PROPERTY_TYPE, &type)
             < 0) {
             break;
@@ -248,15 +251,17 @@ pumpEvents(_THIS)
 
         switch (type) {
         case SCREEN_EVENT_KEYBOARD:
+            printf("pump keyboard \n");
             handleKeyboardEvent(event);
             break;
 
-        #ifdef SDL_JOYSTICK_QNX
+        //#ifdef SDL_JOYSTICK_QNX
         case SCREEN_EVENT_GAMEPAD:
         case SCREEN_EVENT_JOYSTICK:
+            printf("pump joystick\n");
             handleJoystickEvent(event);
             break;
-        #endif
+        //#endif
         default:
             break;
         }
