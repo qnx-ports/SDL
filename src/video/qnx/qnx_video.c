@@ -24,6 +24,8 @@
 #include "errno.h"
 #include "screen_consts.h"
 
+static int initialized = 0;
+
 /**
  * Initializes the QNX video plugin.
  * Creates the Screen context and event handles used for all window operations
@@ -36,6 +38,8 @@ static int
 videoInit(_THIS)
 {
     SDL_VideoDisplay display;
+    printf("QNXVid videoInit\n");
+    initialized = 1;
 
     if (screen_create_context(&context, SCREEN_APPLICATION_CONTEXT) < 0) {
         return -1;
@@ -81,6 +85,8 @@ createWindow(_THIS, SDL_Window *window)
     int             format;
     int             usage;
 
+    printf("QNXVid createWindow\n");
+
     impl = SDL_calloc(1, sizeof(*impl));
     if (impl == NULL) {
         return -1;
@@ -103,6 +109,8 @@ createWindow(_THIS, SDL_Window *window)
         printf("qnx/video.c: | Setting SCREEN_PROPERTY_SIZE fail with errno %d\n", errno);
         goto fail;
     } //Sets buffer size and source size implicitly
+
+    printf("Setting size to %dx%d\n", size[0], size[1]);
 
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SWAP_INTERVAL,
                                       &interval) < 0) {
@@ -143,18 +151,19 @@ createWindow(_THIS, SDL_Window *window)
     }
 
     // Create buffer(s).
-    if (screen_create_window_buffers(impl->window, numbufs) < 0) {
+    if (screen_create_window_buffers(impl->window, numbufs>0?numbufs:1) < 0) {
         goto fail;
     }
 
     window->driverdata = impl;
+    printf("QNXVid createWindow end\n");
     return 0;
 
 fail:
     if (impl->window) {
         screen_destroy_window(impl->window);
     }
-
+    printf("QNXVid createWindow free end\n");
     SDL_free(impl);
     return -1;
 }
@@ -173,25 +182,33 @@ static int
 createWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
                         void ** pixels, int *pitch)
 {
+    int buffer_count;
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
-    screen_buffer_t buffer;
+    screen_buffer_t *buffer;
+
+    if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
+        &buffer_count) < 0) {
+        return -1;
+    }
+    buffer = calloc(buffer_count, sizeof(screen_buffer_t));
 
     // Get a pointer to the buffer's memory.
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
-                                      &buffer) < 0) {
+                                      buffer) < 0) {
         return -1;
     }
 
-    if (screen_get_buffer_property_pv(buffer, SCREEN_PROPERTY_POINTER,
+    if (screen_get_buffer_property_pv(*buffer, SCREEN_PROPERTY_POINTER,
                                       pixels) < 0) {
         return -1;
     }
 
     // Set format and pitch.
-    if (screen_get_buffer_property_iv(buffer, SCREEN_PROPERTY_STRIDE,
+    if (screen_get_buffer_property_iv(*buffer, SCREEN_PROPERTY_STRIDE,
                                       pitch) < 0) {
         return -1;
     }
+
 
     *format = SDL_PIXELFORMAT_RGBX8888;
     return 0;
@@ -209,17 +226,39 @@ static int
 updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
                         int numrects)
 {
+    int buffer_count, *rects_int;
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
-    screen_buffer_t buffer;
+    screen_buffer_t *buffer;
+    printf("QNXVid updateWindowFrameBuffer\n");
+
+    if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
+        &buffer_count) < 0) {
+        return -1;
+    }
+    buffer = calloc(buffer_count, sizeof(screen_buffer_t));
 
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
-                                      (void **)&buffer) < 0) {
+                                      buffer) < 0) {
         printf("qnx/video.c: | Failure to get screen buffers %d\n", errno);
         return -1;
     }
 
-    if(screen_post_window(impl->window, buffer, numrects, (int *)rects, 0)) printf("qnx/video.c: | Screen Post Window error - errno%d\n", errno);
-    if(screen_flush_context(context, 0)) printf("qnx/video.c: | Screen flush context error - errno%d\n", errno);
+    if(numrects>0){
+        rects_int = calloc(4*numrects, sizeof(int));
+        
+        for(int i = 0; i < numrects; i++){
+            rects_int[4*i]   = rects[i].x;
+            rects_int[4*i+1] = rects[i].y;
+            rects_int[4*i+2] = rects[i].w;
+            rects_int[4*i+3] = rects[i].h;
+            printf("rect @%d,%d - %dx%d\n", rects[i].x, rects[i].y, rects[i].w, rects[i].h);
+        }
+
+        if(screen_post_window(impl->window, buffer[0], numrects, rects_int, 0)) 
+            printf("qnx/video.c: | Screen Post Window error - errno %d\n", errno);
+        if(screen_flush_context(context, 0)) 
+            printf("qnx/video.c: | Screen flush context error - errno %d\n", errno);
+    }
     return 0;
 }
 
@@ -230,7 +269,7 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
 static void
 pumpEvents(_THIS)
 {
-    int             type;
+    int type;
 
     for (;;) {
         if(!context) break;
@@ -253,6 +292,10 @@ pumpEvents(_THIS)
         case SCREEN_EVENT_KEYBOARD:
             printf("pump keyboard \n");
             handleKeyboardEvent(event);
+            break;
+
+        case SCREEN_EVENT_POINTER:
+            handlePointerEvent(event);
             break;
 
         //#ifdef SDL_JOYSTICK_QNX
@@ -279,6 +322,7 @@ setWindowSize(_THIS, SDL_Window *window)
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     int             size[2];
 
+    printf("QNXVid setWindowSize\n");
     size[0] = window->w;
     size[1] = window->h;
 
@@ -297,6 +341,7 @@ showWindow(_THIS, SDL_Window *window)
 {
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     const int       visible = 1;
+    printf("QNXVid showWindow\n");
 
     screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_VISIBLE,
                                   &visible);
@@ -312,6 +357,7 @@ hideWindow(_THIS, SDL_Window *window)
 {
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     const int       visible = 0;
+    printf("QNXVid hideWindow\n");
 
     screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_VISIBLE,
         &visible);
@@ -326,6 +372,7 @@ static void
 destroyWindow(_THIS, SDL_Window *window)
 {
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
+    printf("QNXVid destroyWindow\n");
 
     if (impl) {
         screen_destroy_window(impl->window);
@@ -349,6 +396,8 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
     screen_display_t    *disp;
     int                 fullscreen_size[2];
     int                 ndevices;
+
+    printf("QNXVid setWindowFullscreen\n");
 
     if(fullscreen == impl->is_fullscreen) return;
 
@@ -409,6 +458,7 @@ int getDisplayBounds(_THIS, SDL_VideoDisplay * display, SDL_Rect * rect){
     window_impl_t       *sdl_win;
     int                 size[2];
     int                 ndevices;
+    printf("QNXVid getDisplayBounds\n");
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
         printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
@@ -461,6 +511,7 @@ int getDisplayDPI(_THIS, SDL_VideoDisplay * display, float * ddpi, float * hdpi,
     int                 ndevices;
     int                 dpi_as_int[2];
     int                 size[2];
+    printf("QNXVid getDisplayDPI\n");
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
         printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
@@ -500,6 +551,89 @@ int getDisplayDPI(_THIS, SDL_VideoDisplay * display, float * ddpi, float * hdpi,
     return 0;
 }
 
+
+void getDisplayModes(_THIS, SDL_VideoDisplay * display){
+    int nmodes, ndisplays;
+    
+    screen_display_t* disp;
+    screen_display_mode_t* modes;
+    
+    printf("QNXVid GetDisplayModes\n");
+
+    if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndisplays)){
+        printf("qnx/video.c: | qnx getDisplayModes Failed to query for display count w errno %d\n", errno);
+        return -1;
+    }
+    disp = (screen_display_t*)calloc(ndisplays, sizeof(screen_display_t));
+    
+    if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
+        printf("qnx/video.c: | qnx getDisplayModes abs Failed to query for displays w errno %d\n", errno);
+        free(disp);
+        return -1;
+    }
+
+    if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_MODE_COUNT, &nmodes)){
+        printf("qnx/video.c: | qnx getDisplayModes Failed to query for mode count w errno %d\n", errno);
+        free(disp);
+        return -1;
+    }
+    modes = (screen_display_mode_t*)calloc(nmodes, sizeof(screen_display_mode_t));
+
+    if(screen_get_display_modes(disp[0], nmodes, modes)){
+        printf("qnx/video.c: | qnx getDisplayModes Failed to query for modes w errno %d\n", errno);
+        free(disp);
+        free(modes);
+        return -1;
+    }
+
+    printf("Mode Success Count %d\n", nmodes);
+
+    for(int i = 0; i < nmodes; i++){
+        SDL_DisplayMode Mode;
+        Mode.format = SDL_PIXELFORMAT_RGBX8888;
+        Mode.w = modes[i].width;
+        Mode.h = modes[i].height;
+        Mode.refresh_rate = modes[i].refresh;
+        Mode.driverdata = &(modes[i]);
+        SDL_AddDisplayMode(display, &Mode);
+        printf("%d - %d by %d @ %d\n", i, Mode.w, Mode.h, Mode.refresh_rate);
+    }
+
+    free(disp);
+
+    //SDL_AddDisplayMode(display, &mode);
+}
+
+// int setDisplayMode(_THIS, SDL_VideoDisplay * display, SDL_DisplayMode * mode){
+//     int ndisplays, index;
+//     screen_display_t* disp;
+
+//     printf("QNXVid SetDisplayMode\n");
+
+//     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndisplays)){
+//         printf("qnx/video.c: | qnx getDisplayModes Failed to query for display count w errno %d\n", errno);
+//         return -1;
+//     }
+//     disp = (screen_display_t*)calloc(ndisplays, sizeof(screen_display_t));
+    
+//     if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
+//         printf("qnx/video.c: | qnx getDisplayModes abs Failed to query for displays w errno %d\n", errno);
+//         free(disp);
+//         return -1;
+//     }
+
+//     index = ((screen_display_mode_t*)(mode->driverdata))->index;
+
+//     if(screen_set_display_property_iv(disp[0], SCREEN_PROPERTY_MODE, &index)){
+//         printf("qnx/video.c: | qnx getDisplayModes Failed to set mode w errno %d\n", errno);
+//         free(disp);
+//         return -1;
+//     }
+
+//     free(disp);
+    
+// }
+
 /**
  * Creates the QNX video plugin used by SDL.
  * @param   devindex    Unused
@@ -515,7 +649,9 @@ createDevice(int devindex)
     device = (SDL_VideoDevice *)SDL_calloc(1, sizeof(SDL_VideoDevice));
     if (device == NULL) {
         return NULL;
+        printf("Test QNX video A-Fail \n");
     }
+    printf("Test QNX video B \n");
 
     device->driverdata = NULL;
     device->VideoInit = videoInit;
@@ -533,9 +669,8 @@ createDevice(int devindex)
     device->GetDisplayBounds = getDisplayBounds;
     device->GetDisplayDPI = getDisplayDPI;
     device->GetDisplayUsableBounds = getDisplayBounds;
-    //GetDisplayModes(?)
-    //SetDisplayMode
-    //
+    //device->GetDisplayModes = getDisplayModes;
+    //device->SetDisplayMode = setDisplayMode; //Segfaults
 
     device->GL_LoadLibrary = glLoadLibrary;
     device->GL_GetProcAddress = glGetProcAddress;
@@ -547,6 +682,7 @@ createDevice(int devindex)
     device->GL_UnloadLibrary = glUnloadLibrary;
 
     device->free = deleteDevice;
+    printf("Test QNX video C \n");
     return device;
 }
 

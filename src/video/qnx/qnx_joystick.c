@@ -194,7 +194,7 @@ void handleJoystickEvent(screen_event_t event){
 	int index, deviceid, size;
 	int analog[3] = {0, 0, 0};
 
-	if(has_init == 0)return;
+	if(has_init < 10){has_init++; return;}
 
 	if(!event) return;
 
@@ -227,9 +227,15 @@ void handleJoystickEvent(screen_event_t event){
 	}
 	}
 
-	//printf("pre joystickupdate\n");
-	if(SDL_PrivateJoystickValid(stick->attached)){SDL_SYS_JoystickUpdate(stick->attached);}
-	//printf("post joystickupdate\n");
+	printf("pre joystickupdate\n");
+	if(stick->attached){
+		printf("pass a\n");
+		if(SDL_PrivateJoystickValid(stick->attached)){
+			SDL_SYS_JoystickUpdate(stick->attached);
+			printf("pass b\n");
+		}
+	}
+	printf("post joystickupdate\n");
 }
 
 
@@ -241,7 +247,6 @@ void SDL_SYS_JoystickDetect(void){}
 // Detects for joysticks and returns a count.
 int SDL_SYS_JoystickInit(void){
 	//SDL_joystick_allows_background_events = SDL_TRUE;
-	has_init = 1;
 	return SDL_SYS_NumJoysticks;
 }
 
@@ -274,7 +279,9 @@ SDL_JoystickID SDL_SYS_GetInstanceIdOfDeviceIndex(int device_index){
 int SDL_SYS_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	struct joystick_hwdata* data;
 
-	//printf("Joystickopen\n");
+	printf("Joystickopen\n");
+	if(!joystick) return -1;
+	if(!SDL_PrivateJoystickValid(joystick)) return 1;
 	
 	data = index_to_hwdata(device_index);
 
@@ -287,6 +294,7 @@ int SDL_SYS_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	joystick->naxes = 4; //HARD CODED BY SCREEN //DISABLED FOR NOW TODO
 	joystick->nballs = 0;
 	joystick->nbuttons = 15; //SET BY SDL BUTTON MAX INDEX (0to14 = 15)
+	return 0;
 }
 
 SDL_bool SDL_SYS_JoystickAttached(SDL_Joystick *joystick){
