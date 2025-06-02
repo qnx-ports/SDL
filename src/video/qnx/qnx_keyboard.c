@@ -129,7 +129,6 @@ handleKeyboardEvent(screen_event_t event)
     // Need to handle more key states (such as key combinations).
     if (val & KEY_DOWN) {
         SDL_SendKeyboardKey(SDL_PRESSED, scancode);
-        printf("Sending key # %d\n", scancode);
     } else {
         SDL_SendKeyboardKey(SDL_RELEASED, scancode);
     }

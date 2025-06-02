@@ -38,7 +38,6 @@ static int
 videoInit(_THIS)
 {
     SDL_VideoDisplay display;
-    printf("QNXVid videoInit\n");
     initialized = 1;
 
     if (screen_create_context(&context, SCREEN_APPLICATION_CONTEXT) < 0) {
@@ -85,8 +84,6 @@ createWindow(_THIS, SDL_Window *window)
     int             format;
     int             usage;
 
-    printf("QNXVid createWindow\n");
-
     impl = SDL_calloc(1, sizeof(*impl));
     if (impl == NULL) {
         return -1;
@@ -109,8 +106,6 @@ createWindow(_THIS, SDL_Window *window)
         printf("qnx/video.c: | Setting SCREEN_PROPERTY_SIZE fail with errno %d\n", errno);
         goto fail;
     } //Sets buffer size and source size implicitly
-
-    printf("Setting size to %dx%d\n", size[0], size[1]);
 
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SWAP_INTERVAL,
                                       &interval) < 0) {
@@ -156,14 +151,12 @@ createWindow(_THIS, SDL_Window *window)
     }
 
     window->driverdata = impl;
-    printf("QNXVid createWindow end\n");
     return 0;
 
 fail:
     if (impl->window) {
         screen_destroy_window(impl->window);
     }
-    printf("QNXVid createWindow free end\n");
     SDL_free(impl);
     return -1;
 }
@@ -229,7 +222,6 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
     int buffer_count, *rects_int;
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     screen_buffer_t *buffer;
-    printf("QNXVid updateWindowFrameBuffer\n");
 
     if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
         &buffer_count) < 0) {
@@ -251,7 +243,6 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
             rects_int[4*i+1] = rects[i].y;
             rects_int[4*i+2] = rects[i].w;
             rects_int[4*i+3] = rects[i].h;
-            printf("rect @%d,%d - %dx%d\n", rects[i].x, rects[i].y, rects[i].w, rects[i].h);
         }
 
         if(screen_post_window(impl->window, buffer[0], numrects, rects_int, 0)) 
@@ -290,7 +281,6 @@ pumpEvents(_THIS)
 
         switch (type) {
         case SCREEN_EVENT_KEYBOARD:
-            printf("pump keyboard \n");
             handleKeyboardEvent(event);
             break;
 
@@ -301,7 +291,6 @@ pumpEvents(_THIS)
         //#ifdef SDL_JOYSTICK_QNX
         case SCREEN_EVENT_GAMEPAD:
         case SCREEN_EVENT_JOYSTICK:
-            printf("pump joystick\n");
             handleJoystickEvent(event);
             break;
         //#endif
@@ -322,7 +311,6 @@ setWindowSize(_THIS, SDL_Window *window)
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     int             size[2];
 
-    printf("QNXVid setWindowSize\n");
     size[0] = window->w;
     size[1] = window->h;
 
@@ -341,7 +329,6 @@ showWindow(_THIS, SDL_Window *window)
 {
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     const int       visible = 1;
-    printf("QNXVid showWindow\n");
 
     screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_VISIBLE,
                                   &visible);
@@ -357,7 +344,6 @@ hideWindow(_THIS, SDL_Window *window)
 {
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
     const int       visible = 0;
-    printf("QNXVid hideWindow\n");
 
     screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_VISIBLE,
         &visible);
@@ -372,7 +358,6 @@ static void
 destroyWindow(_THIS, SDL_Window *window)
 {
     window_impl_t   *impl = (window_impl_t *)window->driverdata;
-    printf("QNXVid destroyWindow\n");
 
     if (impl) {
         screen_destroy_window(impl->window);
@@ -397,7 +382,6 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
     int                 fullscreen_size[2];
     int                 ndevices;
 
-    printf("QNXVid setWindowFullscreen\n");
 
     if(fullscreen == impl->is_fullscreen) return;
 
@@ -458,7 +442,6 @@ int getDisplayBounds(_THIS, SDL_VideoDisplay * display, SDL_Rect * rect){
     window_impl_t       *sdl_win;
     int                 size[2];
     int                 ndevices;
-    printf("QNXVid getDisplayBounds\n");
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
         printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
@@ -511,7 +494,6 @@ int getDisplayDPI(_THIS, SDL_VideoDisplay * display, float * ddpi, float * hdpi,
     int                 ndevices;
     int                 dpi_as_int[2];
     int                 size[2];
-    printf("QNXVid getDisplayDPI\n");
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
         printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
@@ -557,8 +539,6 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
     
     screen_display_t* disp;
     screen_display_mode_t* modes;
-    
-    printf("QNXVid GetDisplayModes\n");
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndisplays)){
         printf("qnx/video.c: | qnx getDisplayModes Failed to query for display count w errno %d\n", errno);
@@ -586,7 +566,6 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
         return -1;
     }
 
-    printf("Mode Success Count %d\n", nmodes);
 
     for(int i = 0; i < nmodes; i++){
         SDL_DisplayMode Mode;
@@ -596,7 +575,6 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
         Mode.refresh_rate = modes[i].refresh;
         Mode.driverdata = &(modes[i]);
         SDL_AddDisplayMode(display, &Mode);
-        printf("%d - %d by %d @ %d\n", i, Mode.w, Mode.h, Mode.refresh_rate);
     }
 
     free(disp);
@@ -644,14 +622,11 @@ createDevice(int devindex)
 {
     SDL_VideoDevice *device;
 
-    printf("Test QNX video \n");
 
     device = (SDL_VideoDevice *)SDL_calloc(1, sizeof(SDL_VideoDevice));
     if (device == NULL) {
         return NULL;
-        printf("Test QNX video A-Fail \n");
     }
-    printf("Test QNX video B \n");
 
     device->driverdata = NULL;
     device->VideoInit = videoInit;
@@ -682,7 +657,6 @@ createDevice(int devindex)
     device->GL_UnloadLibrary = glUnloadLibrary;
 
     device->free = deleteDevice;
-    printf("Test QNX video C \n");
     return device;
 }
 

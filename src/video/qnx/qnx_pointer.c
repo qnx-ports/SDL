@@ -33,8 +33,6 @@ void handlePointerEvent(screen_event_t event){
 	screen_get_event_property_iv(event, SCREEN_PROPERTY_POSITION, pos);
 	screen_get_event_property_iv(event, SCREEN_PROPERTY_DISPLACEMENT, displacement);
 	
-	printf("b:%02x w:%d wh:%d x:%d y:%d diffs:%d %d\n", buttons, mouse_wheel, mouse_h_wheel, pos[0], pos[1], displacement[0], displacement[1]);
-	
 	mouse = SDL_GetMouse();
 
 	for(int i = 0; i < 3; i++){

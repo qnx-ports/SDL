@@ -34,7 +34,6 @@ SDL_JoystickID next_id = 0;
 int has_init = 0;
 
 Uint8 button_to_SDL(unsigned button){
-	//printf("Converting %u\n", button);
 	if( button & SCREEN_A_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_A;
 	if( button & SCREEN_B_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_B;
 	if( button & SCREEN_X_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_X;
@@ -164,7 +163,6 @@ struct joystick_hwdata * alloc_hwdata(int dev){
 }
 
 int convert_to_SDL_sticksize(int convert, int screen_max){
-	printf("conversion: max: %d %d", screen_max, convert);
 	convert = convert - (screen_max/2); //centre
 	screen_max = screen_max/2;
 	while(screen_max > SDL_JOYSTICK_AXIS_MAX){
@@ -180,7 +178,6 @@ int convert_to_SDL_sticksize(int convert, int screen_max){
 	// if(convert < SDL_JOYSTICK_AXIS_MIN) convert =  SDL_JOYSTICK_AXIS_MIN;
 	// if(convert > SDL_JOYSTICK_AXIS_MAX) convert =  SDL_JOYSTICK_AXIS_MAX;
 
-	printf("->%d \n", convert);
 	return convert;
 }
 
@@ -216,26 +213,20 @@ void handleJoystickEvent(screen_event_t event){
 
 	if(size > 0){
 	if(screen_get_event_property_iv(event, SCREEN_PROPERTY_ANALOG0, analog)==0){
-		//printf("analogl %d %d\n", analog[0], analog[1]);
 		stick->analog0_x = convert_to_SDL_sticksize(analog[0], size); stick->a0x_up = 1;
 		stick->analog0_y = convert_to_SDL_sticksize(analog[1], size); stick->a0y_up = 1;
 	}
 	if(screen_get_event_property_iv(event, SCREEN_PROPERTY_ANALOG1, analog)==0){
-		//printf("analogr %d %d\n", analog[0], analog[1]);
 		stick->analog1_x = convert_to_SDL_sticksize(analog[0], size); stick->a1x_up = 1;
 		stick->analog1_y = convert_to_SDL_sticksize(analog[1], size); stick->a1y_up = 1;
 	}
 	}
 
-	printf("pre joystickupdate\n");
 	if(stick->attached){
-		printf("pass a\n");
 		if(SDL_PrivateJoystickValid(stick->attached)){
 			SDL_SYS_JoystickUpdate(stick->attached);
-			printf("pass b\n");
 		}
 	}
-	printf("post joystickupdate\n");
 }
 
 
@@ -279,7 +270,6 @@ SDL_JoystickID SDL_SYS_GetInstanceIdOfDeviceIndex(int device_index){
 int SDL_SYS_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	struct joystick_hwdata* data;
 
-	printf("Joystickopen\n");
 	if(!joystick) return -1;
 	if(!SDL_PrivateJoystickValid(joystick)) return 1;
 	
@@ -320,16 +310,12 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick * joystick){
 	int index;
 	unsigned diff, release, press;
 
-	// printf("SDL Joystick Update\n");
 	if(!joystick) return;
-	//printf("valid joystick \n");
 	if(!(joystick->hwdata)) return;
-	//printf("valid hwdata \n");
 
 	diff = joystick->hwdata->current_buttons ^ joystick->hwdata->last_buttons;
 	release = joystick->hwdata->last_buttons & diff;
 	press = joystick->hwdata->current_buttons & diff;
-	//printf("Past processing\n");
 
 	if(joystick->hwdata->a0x_up == 1){
 		joystick->hwdata->a0x_up = 0;
@@ -350,18 +336,13 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick * joystick){
 
 	for (int i = 0; i < SCREEN_MASK_LENGTH; i++){
 		int button;
-		//printf("Loop %d\n", i);
 		button = button_to_SDL(1 << i);
 		if(button == 0xFF) continue;
 		if((release >> i) & 0b1){
-			//printf("Attempting privatejoystickbutton rel\n");
 			SDL_PrivateJoystickButton(joystick, button, SDL_RELEASED);
-			//printf("SDL_Joystick_button event release %d \n", button);
 		}
 		if((press >> i) & 0b1){
-			//printf("Attempting privatejoystickbutton press\n");
 			SDL_PrivateJoystickButton(joystick, button, SDL_PRESSED);
-			//printf("SDL_Joystick_button event pressed %d\n", button);
 			
 		}
 	}
