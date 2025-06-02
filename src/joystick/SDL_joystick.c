@@ -1301,7 +1301,6 @@ SDL_PrivateJoystickAxis(SDL_Joystick *joystick, Uint8 axis, Sint16 value)
     int posted;
     SDL_JoystickAxisInfo *info;
 
-    printf("Private Joystick Axis\n");
     /* Make sure we're not getting garbage or duplicate events */
     if (axis >= joystick->naxes) {
         return 0;
