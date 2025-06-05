@@ -41,13 +41,13 @@ videoInit(_THIS)
     initialized = 1;
 
     if (screen_create_context(&context, SCREEN_APPLICATION_CONTEXT) < 0) {
+        printf("qnx/video.c: | Context creation failure with errno %d\n", errno); 
         return -1;
-        printf("qnx/video.c: | Context creation failure with errno %d\n", errno); // never reaches here, should be above return
     }
 
     if (screen_create_event(&event) < 0) {
+        printf("qnx/video.c: | Event creation failure with errno %d\n", errno); 
         return -1;
-        printf("qnx/video.c: | Event creation failure with errno %d\n", errno); // never reaches here, should be above return
     }
 
     SDL_zero(display);
@@ -581,36 +581,7 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
 
     //SDL_AddDisplayMode(display, &mode);
 }
-// junk code can be removed?
-// int setDisplayMode(_THIS, SDL_VideoDisplay * display, SDL_DisplayMode * mode){
-//     int ndisplays, index;
-//     screen_display_t* disp;
 
-//     printf("QNXVid SetDisplayMode\n");
-
-//     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndisplays)){
-//         printf("qnx/video.c: | qnx getDisplayModes Failed to query for display count w errno %d\n", errno);
-//         return -1;
-//     }
-//     disp = (screen_display_t*)calloc(ndisplays, sizeof(screen_display_t));
-    
-//     if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
-//         printf("qnx/video.c: | qnx getDisplayModes abs Failed to query for displays w errno %d\n", errno);
-//         free(disp);
-//         return -1;
-//     }
-
-//     index = ((screen_display_mode_t*)(mode->driverdata))->index;
-
-//     if(screen_set_display_property_iv(disp[0], SCREEN_PROPERTY_MODE, &index)){
-//         printf("qnx/video.c: | qnx getDisplayModes Failed to set mode w errno %d\n", errno);
-//         free(disp);
-//         return -1;
-//     }
-
-//     free(disp);
-    
-// }
 
 /**
  * Creates the QNX video plugin used by SDL.

@@ -1,7 +1,7 @@
-#include "SDL.h"
 #include "../../SDL_internal.h"
 #include "../../joystick/SDL_joystick_c.h"
 #include "../../joystick/SDL_sysjoystick.h"
+#include "SDL.h"
 #include "SDL_events.h"
 #include "SDL_joystick.h"
 #include "SDL_gamecontroller.h"
