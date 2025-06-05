@@ -45,7 +45,7 @@
 /* This is a minimal configuration just to get SDL running on new platforms */
 #include "SDL_config_minimal.h"
 #endif /* platform config */
-
+// why is this error commented out?
 #ifdef USING_GENERATED_CONFIG_H
 //#error Wrong SDL_config.h, check your include path?
 #endif

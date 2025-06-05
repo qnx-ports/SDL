@@ -42,12 +42,12 @@ videoInit(_THIS)
 
     if (screen_create_context(&context, SCREEN_APPLICATION_CONTEXT) < 0) {
         return -1;
-        printf("qnx/video.c: | Context creation failure with errno %d\n", errno);
+        printf("qnx/video.c: | Context creation failure with errno %d\n", errno); // never reaches here, should be above return
     }
 
     if (screen_create_event(&event) < 0) {
         return -1;
-        printf("qnx/video.c: | Event creation failure with errno %d\n", errno);
+        printf("qnx/video.c: | Event creation failure with errno %d\n", errno); // never reaches here, should be above return
     }
 
     SDL_zero(display);
@@ -581,7 +581,7 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
 
     //SDL_AddDisplayMode(display, &mode);
 }
-
+// junk code can be removed?
 // int setDisplayMode(_THIS, SDL_VideoDisplay * display, SDL_DisplayMode * mode){
 //     int ndisplays, index;
 //     screen_display_t* disp;

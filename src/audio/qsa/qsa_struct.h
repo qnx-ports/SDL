@@ -1,3 +1,9 @@
+/*
+    similar to sys/asound_common.h except for 2 unions in
+    snd_pcm_channel_setup_t and snd_pcm_channel_params_t
+    what is use of these unions?
+*/
+
 #include <stdint.h>
 
 #ifdef __cplusplus
