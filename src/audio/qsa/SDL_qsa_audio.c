@@ -44,11 +44,11 @@
 #include <sys/select.h>
 #include <sys/neutrino.h>
 // what is reason for adding such dynamic loading functionality over the standard dynamic linking of libasound.so?
-#ifdef DYNLOAD_QNX
-#include "qsa_symbol_list.h"
-#else
+//#ifdef DYNLOAD_QNX
+//#include "qsa_symbol_list.h"
+//#else
 #include <sys/asoundlib.h>
-#endif
+//#endif
 
 #include "SDL_timer.h"
 #include "SDL_audio.h"

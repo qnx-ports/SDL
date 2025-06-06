@@ -243,7 +243,7 @@ int SDL_SYS_NumJoysticks(void){
 }
 
 void SDL_SYS_JoystickQuit(void){
-	struct joystick_hwdata* temp, stick;
+	struct joystick_hwdata *temp, *stick;
 
 	stick = data_list;
 	data_list = NULL;
