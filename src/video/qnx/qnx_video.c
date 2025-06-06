@@ -386,7 +386,7 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
     if(fullscreen == impl->is_fullscreen) return;
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
-        printf("qnx/video.c: |  qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
+        printf("qnx/video.c: |  qnx getDisplayDPI Failed to query for display count w errno %d\n", errno); // small typo - "count w errno" to "count with errno" - please fix all instances
         return ;
     }
     disp = (screen_display_t*)calloc(ndevices, sizeof(screen_display_t));
@@ -417,7 +417,7 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
         free(disp);
         return ;
         }
-        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_SIZE, );
+        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_SIZE, ); // clean up
         //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SOURCE_SIZE, );
         impl->is_fullscreen = SDL_TRUE;
     }else{
@@ -426,7 +426,7 @@ void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, S
         free(disp);
         return ;
         }
-        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_SIZE, impl->fs_lastsize);
+        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_SIZE, impl->fs_lastsize); // clean up
         //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SOURCE_SIZE, impl->fs_lastsize);
         impl->is_fullscreen = SDL_FALSE;
     }
@@ -579,7 +579,7 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
 
     free(disp);
 
-    //SDL_AddDisplayMode(display, &mode);
+    //SDL_AddDisplayMode(display, &mode); // clean up
 }
 
 

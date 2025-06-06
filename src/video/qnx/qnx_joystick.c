@@ -169,7 +169,7 @@ int convert_to_SDL_sticksize(int convert, int screen_max){
 		screen_max = screen_max/2;
 		convert = convert >> 1;
 	}
-
+	// clean up
 	// if(screen_max < (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1))
 		//convert = (convert * (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1))/screen_max; //scaleup
 	// if(screen_max > (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1))
@@ -231,7 +231,7 @@ void handleJoystickEvent(screen_event_t event){
 
 
 //###################################################################
-void SDL_SYS_JoystickDetect(void){}
+void SDL_SYS_JoystickDetect(void){} // empty fn
 
 //##################################################################
 
@@ -252,7 +252,7 @@ int SDL_SYS_NumJoysticks(void){
 
 	return count;
 }
-
+// empty fn
 void SDL_SYS_JoystickQuit(void){
 	//free all?
 }
@@ -343,7 +343,6 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick * joystick){
 		}
 		if((press >> i) & 0b1){
 			SDL_PrivateJoystickButton(joystick, button, SDL_PRESSED);
-			
 		}
 	}
 
