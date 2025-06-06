@@ -1,7 +1,7 @@
-#include "SDL.h"
 #include "../../SDL_internal.h"
 #include "../../joystick/SDL_joystick_c.h"
 #include "../../joystick/SDL_sysjoystick.h"
+#include "SDL.h"
 #include "SDL_events.h"
 #include "SDL_joystick.h"
 #include "SDL_gamecontroller.h"
@@ -14,7 +14,6 @@
 
 #include "sys/usbdi.h"
 
-//#ifdef SDL_JOYSTICK_QNX
 #define SCREEN_MASK_LENGTH 20
 
 // QNX-specific struct
@@ -90,7 +89,7 @@ SDL_Joystick* deviceid_to_joystick(int device){
 			return (next->attached)? next->attached: NULL;
 		next = next->next;
 	}
-	return -1;
+	return NULL;
 }
 
 SDL_Joystick* index_to_joystick(int index){
@@ -170,14 +169,6 @@ int convert_to_SDL_sticksize(int convert, int screen_max){
 		convert = convert >> 1;
 	}
 
-	// if(screen_max < (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1))
-		//convert = (convert * (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1))/screen_max; //scaleup
-	// if(screen_max > (SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1))
-	// 	convert = convert / (screen_max/(SDL_JOYSTICK_AXIS_MAX - SDL_JOYSTICK_AXIS_MIN +1));
-
-	// if(convert < SDL_JOYSTICK_AXIS_MIN) convert =  SDL_JOYSTICK_AXIS_MIN;
-	// if(convert > SDL_JOYSTICK_AXIS_MAX) convert =  SDL_JOYSTICK_AXIS_MAX;
-
 	return convert;
 }
 
@@ -231,13 +222,11 @@ void handleJoystickEvent(screen_event_t event){
 
 
 //###################################################################
-void SDL_SYS_JoystickDetect(void){}
+void SDL_SYS_JoystickDetect(void){} 
 
 //##################################################################
-
 // Detects for joysticks and returns a count.
 int SDL_SYS_JoystickInit(void){
-	//SDL_joystick_allows_background_events = SDL_TRUE;
 	return SDL_SYS_NumJoysticks;
 }
 
@@ -254,11 +243,21 @@ int SDL_SYS_NumJoysticks(void){
 }
 
 void SDL_SYS_JoystickQuit(void){
-	//free all?
+	struct joystick_hwdata *temp, *stick;
+
+	stick = data_list;
+	data_list = NULL;
+
+	while(stick != NULL){
+		SDL_PrivateJoystickRemoved(stick->attached->instance_id);
+		temp = stick;
+		stick = stick->next;
+		free(temp);
+	}
 }
 
 const char * SDL_SYS_JoystickNameForDeviceIndex(int device_index){
-	return "qnx_joypad"; //TODO: Actual device name
+	return "qnx_joypad"; 
 }
 
 SDL_JoystickID SDL_SYS_GetInstanceIdOfDeviceIndex(int device_index){
@@ -281,7 +280,7 @@ int SDL_SYS_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	joystick->hwdata = data;
 	data->attached = joystick;
 
-	joystick->naxes = 4; //HARD CODED BY SCREEN //DISABLED FOR NOW TODO
+	joystick->naxes = 4; //HARD CODED BY SCREEN 
 	joystick->nballs = 0;
 	joystick->nbuttons = 15; //SET BY SDL BUTTON MAX INDEX (0to14 = 15)
 	return 0;
@@ -343,7 +342,6 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick * joystick){
 		}
 		if((press >> i) & 0b1){
 			SDL_PrivateJoystickButton(joystick, button, SDL_PRESSED);
-			
 		}
 	}
 
