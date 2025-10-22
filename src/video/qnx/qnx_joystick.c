@@ -93,41 +93,6 @@ SDL_Joystick* deviceid_to_joystick(int device){
 	return -1;
 }
 
-SDL_Joystick* index_to_joystick(int index){
-	struct joystick_hwdata* next;
-	int check = 0;
-
-	check = SDL_SYS_NumJoysticks();
-	if(index > check) return NULL;
-
-	while(next){
-		if(index < 0) return NULL;
-		if(index == 0) return (next->attached)? next->attached: NULL;
-		index--;
-		next = next->next;
-	}
-
-	return NULL;
-}
-
-struct joystick_hwdata* index_to_hwdata(int index){
-	struct joystick_hwdata* next;
-	int check = 0;
-
-	check = SDL_SYS_NumJoysticks();
-	if(index > check) return NULL;
-
-	next = data_list;
-	while(next != NULL){
-		if(index < 0) return NULL;
-		if(index == 0) return next;
-		index--;
-		next = next->next;
-	}
-
-	return NULL;
-}
-
 struct joystick_hwdata * alloc_hwdata(int dev){
 	struct joystick_hwdata *ptr, *temp;
 	int index = 0;
@@ -181,67 +146,12 @@ int convert_to_SDL_sticksize(int convert, int screen_max){
 	return convert;
 }
 
-/**
- * Handles screen joystick or gamepad.
- */
-void handleJoystickEvent(screen_event_t event){
-	struct joystick_hwdata * stick;
-	unsigned screen_button_out=0;
-	screen_device_t temp;
-	int index, deviceid, size;
-	int analog[3] = {0, 0, 0};
-
-	if(has_init < 10){has_init++; return;}
-
-	if(!event) return;
-
-	screen_get_event_property_iv(event, SCREEN_PROPERTY_BUTTONS, &screen_button_out);
-	if(screen_get_event_property_pv(event, SCREEN_PROPERTY_DEVICE, &temp)!=0) return;
-	if(!temp) return;
-
-	if(screen_get_device_property_iv(temp, SCREEN_PROPERTY_ID, &deviceid)) return;
-	
-	stick = deviceid_to_hwdata(deviceid);
-
-	if(!stick)
-		stick = alloc_hwdata(deviceid);
-	if(!stick) return;
-
-	stick->current_buttons = screen_button_out;
-
-	screen_get_event_property_iv(event, SCREEN_PROPERTY_SIZE, &size);
-
-	if(size > 0){
-	if(screen_get_event_property_iv(event, SCREEN_PROPERTY_ANALOG0, analog)==0){
-		stick->analog0_x = convert_to_SDL_sticksize(analog[0], size); stick->a0x_up = 1;
-		stick->analog0_y = convert_to_SDL_sticksize(analog[1], size); stick->a0y_up = 1;
-	}
-	if(screen_get_event_property_iv(event, SCREEN_PROPERTY_ANALOG1, analog)==0){
-		stick->analog1_x = convert_to_SDL_sticksize(analog[0], size); stick->a1x_up = 1;
-		stick->analog1_y = convert_to_SDL_sticksize(analog[1], size); stick->a1y_up = 1;
-	}
-	}
-
-	if(stick->attached){
-		if(SDL_PrivateJoystickValid(stick->attached)){
-			SDL_SYS_JoystickUpdate(stick->attached);
-		}
-	}
-}
-
-
 //###################################################################
-void SDL_SYS_JoystickDetect(void){}
+static void QNX_JoystickDetect(void){}
 
 //##################################################################
 
-// Detects for joysticks and returns a count.
-int SDL_SYS_JoystickInit(void){
-	//SDL_joystick_allows_background_events = SDL_TRUE;
-	return SDL_SYS_NumJoysticks;
-}
-
-int SDL_SYS_NumJoysticks(void){
+static int QNX_JoystickGetCount(void){
 	struct joystick_hwdata* sticks = data_list;
 	int count = 0;
 
@@ -253,21 +163,69 @@ int SDL_SYS_NumJoysticks(void){
 	return count;
 }
 
-void SDL_SYS_JoystickQuit(void){
+SDL_Joystick* index_to_joystick(int index){
+	struct joystick_hwdata* next;
+	int check = 0;
+
+	check = QNX_JoystickGetCount();
+	if(index > check) return NULL;
+
+	while(next){
+		if(index < 0) return NULL;
+		if(index == 0) return (next->attached)? next->attached: NULL;
+		index--;
+		next = next->next;
+	}
+
+	return NULL;
+}
+
+struct joystick_hwdata* index_to_hwdata(int index){
+	struct joystick_hwdata* next;
+	int check = 0;
+
+	check = QNX_JoystickGetCount();
+	if(index > check) return NULL;
+
+	next = data_list;
+	while(next != NULL){
+		if(index < 0) return NULL;
+		if(index == 0) return next;
+		index--;
+		next = next->next;
+	}
+
+	return NULL;
+}
+
+// Detects for joysticks and returns a count.
+static int QNX_JoystickInit(void){
+	//SDL_joystick_allows_background_events = SDL_TRUE;
+	return QNX_JoystickGetCount();
+}
+
+static void QNX_JoystickQuit(void){
 	//free all?
 }
 
-const char * SDL_SYS_JoystickNameForDeviceIndex(int device_index){
+static const char * QNX_JoystickGetDeviceName(int device_index){
 	return "qnx_joypad"; //TODO: Actual device name
 }
 
-SDL_JoystickID SDL_SYS_GetInstanceIdOfDeviceIndex(int device_index){
+static int QNX_JoystickGetDevicePlayerIndex(int device_index) {
+    return -1;
+}
+
+static void QNX_JoystickSetDevicePlayerIndex(int device_index, int player_index) {
+}
+
+static SDL_JoystickID QNX_JoystickGetDeviceInstanceID(int device_index){
 	SDL_Joystick* stick;
 	stick = index_to_joystick(device_index);
 	return (stick)? stick->instance_id: -1;
 }
 
-int SDL_SYS_JoystickOpen(SDL_Joystick * joystick, int device_index){
+static int QNX_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	struct joystick_hwdata* data;
 
 	if(!joystick) return -1;
@@ -287,11 +245,31 @@ int SDL_SYS_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	return 0;
 }
 
-SDL_bool SDL_SYS_JoystickAttached(SDL_Joystick *joystick){
+static int QNX_JoystickRumble(SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble) {
+    return SDL_Unsupported();
+}
+
+static int QNX_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble) {
+    return SDL_Unsupported();
+}
+
+static SDL_bool QNX_JoystickHasLED(SDL_Joystick *joystick) {
+    return SDL_FALSE;
+}
+
+static int QNX_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue) {
+    return SDL_Unsupported();
+}
+
+static int QNX_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabled) {
+    return SDL_Unsupported();
+}
+
+static SDL_bool QNX_JoystickAttached(SDL_Joystick *joystick){
 	return joystick->hwdata? SDL_TRUE: SDL_FALSE;
 }
 
-SDL_JoystickGUID SDL_SYS_JoystickGetDeviceGUID(int device_index){
+static SDL_JoystickGUID QNX_JoystickGetDeviceGUID(int device_index){
 	SDL_JoystickGUID toReturn;
 
 	for (int i = 0; i < 16; i++) toReturn.data[i] = 0;
@@ -299,14 +277,14 @@ SDL_JoystickGUID SDL_SYS_JoystickGetDeviceGUID(int device_index){
 	return toReturn;
 }
 
-void SDL_SYS_JoystickClose(SDL_Joystick* joystick){
+static void QNX_JoystickClose(SDL_Joystick* joystick){
 	struct joystick_hwdata* data = joystick->hwdata;
 	joystick->hwdata = NULL;
 	data->attached = NULL;
 	SDL_PrivateJoystickRemoved(joystick->instance_id);
 }
 
-void SDL_SYS_JoystickUpdate(SDL_Joystick * joystick){
+static void QNX_JoystickUpdate(SDL_Joystick * joystick){
 	int index;
 	unsigned diff, release, press;
 
@@ -350,8 +328,82 @@ void SDL_SYS_JoystickUpdate(SDL_Joystick * joystick){
 	joystick->hwdata->last_buttons = joystick->hwdata->current_buttons;
 }
 
-SDL_JoystickGUID SDL_SYS_JoystickGetGUID(SDL_Joystick * joystick){
-	return SDL_SYS_JoystickGetDeviceGUID(0); //temporary.
+static SDL_JoystickGUID QNX_JoystickGetGUID(SDL_Joystick * joystick){
+	return QNX_JoystickGetDeviceGUID(0); //temporary.
 }
+
+static SDL_bool QNX_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *out) {
+    return SDL_FALSE;
+}
+
+/**
+ * Handles screen joystick or gamepad.
+ */
+void handleJoystickEvent(screen_event_t event){
+	struct joystick_hwdata * stick;
+	unsigned screen_button_out=0;
+	screen_device_t temp;
+	int index, deviceid, size;
+	int analog[3] = {0, 0, 0};
+
+	if(has_init < 10){has_init++; return;}
+
+	if(!event) return;
+
+	screen_get_event_property_iv(event, SCREEN_PROPERTY_BUTTONS, &screen_button_out);
+	if(screen_get_event_property_pv(event, SCREEN_PROPERTY_DEVICE, &temp)!=0) return;
+	if(!temp) return;
+
+	if(screen_get_device_property_iv(temp, SCREEN_PROPERTY_ID, &deviceid)) return;
+	
+	stick = deviceid_to_hwdata(deviceid);
+
+	if(!stick)
+		stick = alloc_hwdata(deviceid);
+	if(!stick) return;
+
+	stick->current_buttons = screen_button_out;
+
+	screen_get_event_property_iv(event, SCREEN_PROPERTY_SIZE, &size);
+
+	if(size > 0){
+	if(screen_get_event_property_iv(event, SCREEN_PROPERTY_ANALOG0, analog)==0){
+		stick->analog0_x = convert_to_SDL_sticksize(analog[0], size); stick->a0x_up = 1;
+		stick->analog0_y = convert_to_SDL_sticksize(analog[1], size); stick->a0y_up = 1;
+	}
+	if(screen_get_event_property_iv(event, SCREEN_PROPERTY_ANALOG1, analog)==0){
+		stick->analog1_x = convert_to_SDL_sticksize(analog[0], size); stick->a1x_up = 1;
+		stick->analog1_y = convert_to_SDL_sticksize(analog[1], size); stick->a1y_up = 1;
+	}
+	}
+
+	if(stick->attached){
+		if(SDL_PrivateJoystickValid(stick->attached)){
+			QNX_JoystickUpdate(stick->attached);
+		}
+	}
+}
+
+SDL_JoystickDriver SDL_QNX_JoystickDriver =
+{
+    QNX_JoystickInit,
+    QNX_JoystickGetCount,
+    QNX_JoystickDetect,
+    QNX_JoystickGetDeviceName,
+    QNX_JoystickGetDevicePlayerIndex,
+    QNX_JoystickSetDevicePlayerIndex,
+    QNX_JoystickGetDeviceGUID,
+    QNX_JoystickGetDeviceInstanceID,
+    QNX_JoystickOpen,
+    QNX_JoystickRumble,
+    QNX_JoystickRumbleTriggers,
+    QNX_JoystickHasLED,
+    QNX_JoystickSetLED,
+    QNX_JoystickSetSensorsEnabled,
+    QNX_JoystickUpdate,
+    QNX_JoystickClose,
+    QNX_JoystickQuit,
+    QNX_JoystickGetGamepadMapping
+};
 
 //#endif

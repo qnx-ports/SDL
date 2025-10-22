@@ -201,6 +201,7 @@ extern SDL_JoystickDriver SDL_HIDAPI_JoystickDriver;
 extern SDL_JoystickDriver SDL_RAWINPUT_JoystickDriver;
 extern SDL_JoystickDriver SDL_IOS_JoystickDriver;
 extern SDL_JoystickDriver SDL_LINUX_JoystickDriver;
+extern SDL_JoystickDriver SDL_QNX_JoystickDriver;
 extern SDL_JoystickDriver SDL_VIRTUAL_JoystickDriver;
 extern SDL_JoystickDriver SDL_WGI_JoystickDriver;
 extern SDL_JoystickDriver SDL_WINDOWS_JoystickDriver;

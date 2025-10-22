@@ -71,6 +71,9 @@ static SDL_JoystickDriver *SDL_joystick_drivers[] = {
 #if (defined(__MACOSX__) || defined(__IPHONEOS__) || defined(__TVOS__)) && !defined(SDL_JOYSTICK_DISABLED)
     &SDL_IOS_JoystickDriver,
 #endif
+#if (defined(__QNX__) || defined(__QNXNTO__))
+    &SDL_QNX_JoystickDriver,
+#endif
 #ifdef SDL_JOYSTICK_ANDROID
     &SDL_ANDROID_JoystickDriver,
 #endif
