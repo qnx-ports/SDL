@@ -24,6 +24,7 @@
 #ifndef __SDL_QSA_AUDIO_H__
 #define __SDL_QSA_AUDIO_H__
 
+#if __QNX__ < 800
 #ifdef DYNLOAD_QNX
 #include "qsa_symbol_list.h"
 #else
@@ -55,6 +56,36 @@ struct SDL_PrivateAudioData
     Uint8 *pcm_buf;
     Uint32 pcm_len;
 };
+#else /* __QNX__ < 800 */
+#include <alsa/asoundlib.h>
+
+#include "../SDL_sysaudio.h"
+
+/* Hidden "this" pointer for the audio functions */
+#define _THIS SDL_AudioDevice* this
+
+struct SDL_PrivateAudioData
+{
+    /* SDL capture state */
+    SDL_bool iscapture;
+
+    /* The audio device handle */
+    int32_t cardno;
+    int32_t deviceno;
+    snd_pcm_t *audio_handle;
+
+    /* Select timeout status */
+    uint32_t timeout_on_wait;
+
+    /* Configuration parameters */
+	snd_pcm_hw_params_t *hw_params;
+	snd_pcm_sw_params_t *sw_params;
+
+    /* Raw mixing buffer */
+    Uint8 *pcm_buf;
+    Uint32 pcm_len;
+};
+#endif /* __QNX__ < 800 */
 
 #endif /* __SDL_QSA_AUDIO_H__ */
 

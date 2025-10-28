@@ -59,6 +59,11 @@ struct SDL_SysWMinfo;
 #include <Inspectable.h>
 #endif
 
+/* For some reason this needs to be done explicitly */
+#if defined(__QNX__)
+#undef SDL_VIDEO_DRIVER_X11
+#endif
+
 /* This is the structure for custom window manager events */
 #if defined(SDL_VIDEO_DRIVER_X11)
 #if defined(__APPLE__) && defined(__MACH__)
