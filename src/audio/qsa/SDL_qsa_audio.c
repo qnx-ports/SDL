@@ -904,12 +904,6 @@ QSA_800_CloseDevice(_THIS)
     if (this->hidden->pcm_buf != NULL) {
         SDL_free(this->hidden->pcm_buf);
     }
-    if (this->hidden->hw_params != NULL) {
-        SDL_free(this->hidden->hw_params);
-    }
-    if (this->hidden->sw_params != NULL) {
-        SDL_free(this->hidden->sw_params);
-    }
 
     SDL_free(this->hidden);
 }
@@ -923,6 +917,9 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
     SDL_AudioFormat test_format = 0;
     ssize_t buffer_bytes;
 
+	snd_pcm_hw_params_t *hw_params;
+	snd_pcm_sw_params_t *sw_params;
+
     /* Initialize all variables that we clean on shutdown */
     this->hidden =
         (struct SDL_PrivateAudioData *) SDL_calloc(1,
@@ -933,11 +930,11 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         return SDL_OutOfMemory();
     }
 
-    if (this->hidden->hw_params == NULL) {
-        snd_pcm_hw_params_alloca(&this->hidden->hw_params);
+    if (hw_params == NULL) {
+        snd_pcm_hw_params_alloca(&hw_params);
     }
-    if (this->hidden->sw_params == NULL) {
-        snd_pcm_sw_params_alloca(&this->hidden->sw_params);
+    if (sw_params == NULL) {
+        snd_pcm_sw_params_alloca(&sw_params);
     }
 
     /* Initialize channel direction: capture or playback */
@@ -974,18 +971,16 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         snd_pcm_info_alloca(&pcm_info);
         status = snd_pcm_info(this->hidden->audio_handle, &pcm_info);
         if (status < 0) {
-            free(pcm_info);
             return QSA_800_SetError("snd_pcm_info", -status);
         }
 
         this->hidden->deviceno = snd_pcm_info_get_id(pcm_info);
         this->hidden->cardno = snd_pcm_info_get_card(pcm_info);
-        free(pcm_info);
     }
 
     /* Initialize hardware parameters to default */
-    QSA_800_InitAudioParams(this->hidden->audio_handle, this->hidden->hw_params,
-                            this->hidden->sw_params);
+    QSA_800_InitAudioParams(this->hidden->audio_handle, hw_params,
+                            sw_params);
 
     /* Try for a closest match on audio format */
     status = -1;
@@ -1029,7 +1024,7 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         }
         if (status >= 0) {
             status = snd_pcm_hw_params_set_format(this->hidden->audio_handle,
-                                                  this->hidden->hw_params,
+                                                  hw_params,
                                                   format);
         }
         if (status < 0) {
@@ -1043,7 +1038,7 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
 
     /* Set mono/stereo/4ch/6ch/8ch audio */
     status = snd_pcm_hw_params_set_channels(this->hidden->audio_handle,
-                                            this->hidden->hw_params,
+                                            hw_params,
                                             this->spec.channels);
     if (status < 0) {
         return QSA_800_SetError("snd_pcm_hw_params_set_channels", -status);
@@ -1051,7 +1046,7 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
 
     /* Set rate */
     status = snd_pcm_hw_params_set_rate(this->hidden->audio_handle,
-                                        this->hidden->hw_params,
+                                        hw_params,
                                         this->spec.freq, 0);
     if (status < 0) {
         return QSA_800_SetError("snd_pcm_hw_params_set_rate", -status);
@@ -1082,13 +1077,13 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
 
     /* Write the options to their respective component. */
 	status = snd_pcm_hw_params(this->hidden->audio_handle,
-                               this->hidden->hw_params);
+                               hw_params);
     if (status < 0) {
         return QSA_800_SetError("snd_pcm_hw_params", status);
     }
 
 	status = snd_pcm_sw_params(this->hidden->audio_handle,
-                               this->hidden->sw_params);
+                               sw_params);
     if (status < 0) {
         return QSA_800_SetError("snd_pcm_sw_params", status);
     }

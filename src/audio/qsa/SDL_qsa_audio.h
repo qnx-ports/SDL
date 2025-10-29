@@ -77,10 +77,6 @@ struct SDL_PrivateAudioData
     /* Select timeout status */
     uint32_t timeout_on_wait;
 
-    /* Configuration parameters */
-	snd_pcm_hw_params_t *hw_params;
-	snd_pcm_sw_params_t *sw_params;
-
     /* Raw mixing buffer */
     Uint8 *pcm_buf;
     Uint32 pcm_len;
