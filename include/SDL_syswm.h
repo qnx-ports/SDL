@@ -59,8 +59,11 @@ struct SDL_SysWMinfo;
 #include <Inspectable.h>
 #endif
 
-/* For some reason this needs to be done explicitly */
 #if defined(__QNX__)
+#include <screen/screen.h>
+#include <EGL/egl.h>
+
+/* For some reason this needs to be done explicitly */
 #undef SDL_VIDEO_DRIVER_X11
 #endif
 
@@ -143,7 +146,8 @@ typedef enum
     SDL_SYSWM_ANDROID,
     SDL_SYSWM_VIVANTE,
     SDL_SYSWM_OS2,
-    SDL_SYSWM_HAIKU
+    SDL_SYSWM_HAIKU,
+    SDL_SYSWM_QNX
 } SDL_SYSWM_TYPE;
 
 /**
@@ -314,6 +318,14 @@ struct SDL_SysWMinfo
             EGLNativeDisplayType display;
             EGLNativeWindowType window;
         } vivante;
+#endif
+
+#if defined(SDL_VIDEO_DRIVER_QNX)
+        struct
+        {
+            screen_window_t window;
+            EGLSurface      surface;
+        } qnx;
 #endif
 
         /* Make sure this union is always 64 bytes (8 64-bit pointers). */

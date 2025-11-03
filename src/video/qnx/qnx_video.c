@@ -20,6 +20,7 @@
 */
 #include "../../SDL_internal.h"
 #include "../SDL_sysvideo.h"
+#include "SDL_syswm.h"
 #include "sdl_qnx.h"
 #include "errno.h"
 #include "screen_consts.h"
@@ -365,6 +366,35 @@ destroyWindow(_THIS, SDL_Window *window)
 }
 
 /**
+ * Returns information about the window type.
+ * @param   _THIS
+ * @param   window  SDL window to get info for
+ * @param   info    The resulting info
+ */
+static SDL_bool
+getWindowWMInfo(_THIS, SDL_Window * window, SDL_SysWMinfo * info)
+{
+    window_impl_t   *impl = (window_impl_t *)window->driverdata;
+
+    if (!impl) {
+        SDL_SetError("Window not initialized");
+        return SDL_FALSE;
+    }
+
+    if (info->version.major == SDL_MAJOR_VERSION &&
+        info->version.minor == SDL_MINOR_VERSION) {
+        info->subsystem = SDL_SYSWM_QNX;
+        info->info.qnx.window = impl->window;
+        info->info.qnx.surface = impl->surface;
+        return SDL_TRUE;
+    } else {
+        SDL_SetError("Application not compiled with SDL %d.%d",
+                     SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
+        return SDL_FALSE;
+    }
+}
+
+/**
  * Frees the plugin object created by createDevice().
  * @param   device  Plugin object to free
  */
@@ -638,6 +668,7 @@ createDevice(int devindex)
     device->HideWindow = hideWindow;
     device->PumpEvents = pumpEvents;
     device->DestroyWindow = destroyWindow;
+    device->GetWindowWMInfo = getWindowWMInfo;
     device->SetWindowFullscreen = setWindowFullscreen;
 
     device->GetDisplayBounds = getDisplayBounds;
