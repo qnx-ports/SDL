@@ -32,6 +32,7 @@
 #include "SDL_error.h"
 #include "SDL_video.h"
 #include "SDL_version.h"
+#include "SDL_config.h"
 
 /**
  *  \brief SDL_syswm.h
@@ -59,12 +60,9 @@ struct SDL_SysWMinfo;
 #include <Inspectable.h>
 #endif
 
-#if defined(__QNX__)
+#if defined(SDL_VIDEO_DRIVER_QNX)
 #include <screen/screen.h>
 #include <EGL/egl.h>
-
-/* For some reason this needs to be done explicitly */
-#undef SDL_VIDEO_DRIVER_X11
 #endif
 
 /* This is the structure for custom window manager events */
