@@ -172,9 +172,7 @@
 #endif
 
 /* Enable the filesystem driver */
-#if 0
-#define SDL_FILESYSTEM_QNX   1
-#endif
+#define SDL_FILESYSTEM_UNIX   1
 
 /* Don't let us fall into x11 code */
 #undef SDL_VIDEO_DRIVER_X11
