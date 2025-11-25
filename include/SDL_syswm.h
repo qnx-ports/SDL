@@ -321,8 +321,8 @@ struct SDL_SysWMinfo
 #if defined(SDL_VIDEO_DRIVER_QNX)
         struct
         {
-            screen_window_t window;
-            EGLSurface      surface;
+            screen_window_t *window;
+            EGLSurface surface;
         } qnx;
 #endif
 

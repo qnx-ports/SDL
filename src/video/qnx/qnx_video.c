@@ -95,25 +95,28 @@ createWindow(_THIS, SDL_Window *window)
 
     // Create a native window.
     if (screen_create_window_type(&(impl->window), context, SCREEN_APPLICATION_WINDOW) < 0) {
+        printf("qnx/video.c: | Creating window of type SCREEN_APPLICATION_WINDOW failed with errno %d\n", errno);
         goto fail;
     }
-    
+
     // Set the native window's size to match the SDL window.
     size[0] = window->w;
     size[1] = window->h;
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE,
                                       size) < 0) {
-        printf("qnx/video.c: | Setting SCREEN_PROPERTY_SIZE fail with errno %d\n", errno);
+        printf("qnx/video.c: | Setting SCREEN_PROPERTY_SIZE failed with errno %d\n", errno);
         goto fail;
     } //Sets buffer size and source size implicitly
 
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SWAP_INTERVAL,
                                       &interval) < 0) {
+        printf("qnx/video.c: | Setting SCREEN_PROPERTY_SWAP_INTERVAL failed with errno %d\n", errno);
         goto fail;
     }
 
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_POSITION,
                                       pos) < 0) {
+        printf("qnx/video.c: | Setting SCREEN_PROPERTY_POSITION failed with errno %d\n", errno);
         goto fail;
     }
 
@@ -142,11 +145,13 @@ createWindow(_THIS, SDL_Window *window)
     // Set pixel format 
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_FORMAT,
                                       &format) < 0) {
+        printf("qnx/video.c: | Setting SCREEN_PROPERTY_FORMAT failed with errno %d\n", errno);
         goto fail;
     }
 
     // Create buffer(s).
     if (screen_create_window_buffers(impl->window, numbufs>0?numbufs:1) < 0) {
+        printf("qnx/video.c: | Creating window buffers failed with errno %d\n", errno);
         goto fail;
     }
 
@@ -384,7 +389,7 @@ getWindowWMInfo(_THIS, SDL_Window * window, SDL_SysWMinfo * info)
     if (info->version.major == SDL_MAJOR_VERSION &&
         info->version.minor == SDL_MINOR_VERSION) {
         info->subsystem = SDL_SYSWM_QNX;
-        info->info.qnx.window = impl->window;
+        info->info.qnx.window = &impl->window;
         info->info.qnx.surface = impl->surface;
         return SDL_TRUE;
     } else {

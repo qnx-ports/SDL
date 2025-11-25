@@ -930,12 +930,8 @@ QSA_800_OpenDevice(_THIS, void *handle, const char *devname, int iscapture)
         return SDL_OutOfMemory();
     }
 
-    if (hw_params == NULL) {
-        snd_pcm_hw_params_alloca(&hw_params);
-    }
-    if (sw_params == NULL) {
-        snd_pcm_sw_params_alloca(&sw_params);
-    }
+    snd_pcm_hw_params_alloca(&hw_params);
+    snd_pcm_sw_params_alloca(&sw_params);
 
     /* Initialize channel direction: capture or playback */
     this->hidden->iscapture = iscapture ? SDL_TRUE : SDL_FALSE;
