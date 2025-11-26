@@ -1,4 +1,5 @@
 #include "SDL.h"
+#include "SDL_error.h"
 #include "../../SDL_internal.h"
 #include "../../joystick/SDL_joystick_c.h"
 #include "../../joystick/SDL_sysjoystick.h"
@@ -90,7 +91,7 @@ SDL_Joystick* deviceid_to_joystick(int device){
 			return (next->attached)? next->attached: NULL;
 		next = next->next;
 	}
-	return -1;
+	return NULL;
 }
 
 struct joystick_hwdata * alloc_hwdata(int dev){
@@ -117,7 +118,11 @@ struct joystick_hwdata * alloc_hwdata(int dev){
 
 	if(data_list){
 		temp = data_list;
-		while(temp->next) temp = temp->next; index++;
+		while(temp->next)
+        {
+            temp = temp->next;
+            index++;
+        }
 		temp->next = ptr;
 	}else{
 		data_list = ptr;

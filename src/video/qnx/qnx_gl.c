@@ -22,6 +22,8 @@
 #include "../../SDL_internal.h"
 #include "sdl_qnx.h"
 
+#include <errno.h>
+
 static EGLDisplay   egl_disp;
 
 /**
@@ -77,16 +79,19 @@ glGetConfig(EGLConfig *pconf, int *pformat)
     // Determine the numbfer of configurations.
     rc = eglGetConfigs(egl_disp, NULL, 0, &egl_num_configs);
     if (rc != EGL_TRUE) {
+        printf("qnx/gl.c: | eglGetConfigs failed.\n");
         return -1;
     }
 
     if (egl_num_configs == 0) {
+        printf("qnx/gl.c: | eglGetConfigs returned config count of 0.\n");
         return -1;
     }
 
     // Allocate enough memory for all configurations.
     egl_configs = malloc(egl_num_configs * sizeof(*egl_configs));
     if (egl_configs == NULL) {
+        printf("qnx/gl.c: | malloc failed with errno %d.\n", errno);
         return -1;
     }
 
@@ -94,6 +99,7 @@ glGetConfig(EGLConfig *pconf, int *pformat)
     rc = eglGetConfigs(egl_disp, egl_configs, egl_num_configs,
                        &egl_num_configs);
     if (rc != EGL_TRUE) {
+        printf("qnx/gl.c: | eglGetConfigs failed.\n");
         free(egl_configs);
         return -1;
     }
@@ -139,10 +145,12 @@ glLoadLibrary(_THIS, const char *name)
 
     egl_disp = eglGetDisplay(disp_id);
     if (egl_disp == EGL_NO_DISPLAY) {
+        printf("qnx/gl.c: | eglGetDisplay failed.\n");
         return -1;
     }
 
     if (eglInitialize(egl_disp, NULL, NULL) == EGL_FALSE) {
+        printf("qnx/gl.c: | eglInitialize failed.\n");
         return -1;
     }
 
@@ -193,12 +201,14 @@ glCreateContext(_THIS, SDL_Window *window)
     context = eglCreateContext(egl_disp, impl->conf, EGL_NO_CONTEXT,
                                (EGLint *)&egl_ctx_attr);
     if (context == EGL_NO_CONTEXT) {
+        printf("qnx/gl.c: | eglCreateContext failed.\n");
         return NULL;
     }
 
     surface = eglCreateWindowSurface(egl_disp, impl->conf, impl->window,
                                      (EGLint *)&egl_surf_attr);
     if (surface == EGL_NO_SURFACE) {
+        printf("qnx/gl.c: | eglCreateWindowSurface failed.\n");
         return NULL;
     }
 
@@ -218,6 +228,7 @@ int
 glSetSwapInterval(_THIS, int interval)
 {
     if (eglSwapInterval(egl_disp, interval) != EGL_TRUE) {
+        printf("qnx/gl.c: | eglSwapInterval failed.\n");
         return -1;
     }
 
@@ -257,6 +268,7 @@ glMakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
     }
 
     if (eglMakeCurrent(egl_disp, surface, surface, context) != EGL_TRUE) {
+        printf("qnx/gl.c: | eglMakeCurrent failed.\n");
         return -1;
     }
 

@@ -42,13 +42,13 @@ videoInit(_THIS)
     initialized = 1;
 
     if (screen_create_context(&context, SCREEN_APPLICATION_CONTEXT) < 0) {
-        return -1;
         printf("qnx/video.c: | Context creation failure with errno %d\n", errno);
+        return -1;
     }
 
     if (screen_create_event(&event) < 0) {
-        return -1;
         printf("qnx/video.c: | Event creation failure with errno %d\n", errno);
+        return -1;
     }
 
     SDL_zero(display);
@@ -186,6 +186,7 @@ createWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
 
     if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
         &buffer_count) < 0) {
+        printf("qnx/video.c: | Getting SCREEN_PROPERTY_BUFFER_COUNT failed with errno %d\n", errno);
         return -1;
     }
     buffer = calloc(buffer_count, sizeof(screen_buffer_t));
@@ -193,17 +194,20 @@ createWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
     // Get a pointer to the buffer's memory.
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
                                       buffer) < 0) {
+        printf("qnx/video.c: | Getting SCREEN_PROPERTY_BUFFERS failed with errno %d\n", errno);
         return -1;
     }
 
     if (screen_get_buffer_property_pv(*buffer, SCREEN_PROPERTY_POINTER,
                                       pixels) < 0) {
+        printf("qnx/video.c: | Getting SCREEN_PROPERTY_POINTER failed with errno %d\n", errno);
         return -1;
     }
 
     // Set format and pitch.
     if (screen_get_buffer_property_iv(*buffer, SCREEN_PROPERTY_STRIDE,
                                       pitch) < 0) {
+        printf("qnx/video.c: | Getting SCREEN_PROPERTY_STRIDE failed with errno %d\n", errno);
         return -1;
     }
 
@@ -230,13 +234,14 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
 
     if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
         &buffer_count) < 0) {
+        printf("qnx/video.c: | Getting SCREEN_PROPERTY_BUFFER_COUNT failed with errno %d\n", errno);
         return -1;
     }
     buffer = calloc(buffer_count, sizeof(screen_buffer_t));
 
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
                                       buffer) < 0) {
-        printf("qnx/video.c: | Failure to get screen buffers %d\n", errno);
+        printf("qnx/video.c: | Getting SCREEN_PROPERTY_BUFFERS failed with errno %d\n", errno);
         return -1;
     }
 
