@@ -22,8 +22,9 @@
 #include "../SDL_sysvideo.h"
 #include "SDL_syswm.h"
 #include "sdl_qnx.h"
-#include "errno.h"
 #include "screen_consts.h"
+
+#include <errno.h>
 
 static int initialized = 0;
 
@@ -83,6 +84,7 @@ createWindow(_THIS, SDL_Window *window)
     int             numbufs;
     int             format;
     int             usage;
+    int             has_focus_i;
 
     impl = SDL_calloc(1, sizeof(*impl));
     if (impl == NULL) {
@@ -153,6 +155,13 @@ createWindow(_THIS, SDL_Window *window)
     if (screen_create_window_buffers(impl->window, numbufs>0?numbufs:1) < 0) {
         printf("qnx/video.c: | Creating window buffers failed with errno %d\n", errno);
         goto fail;
+    }
+
+    // Get initial focus state. Fallback to true.
+    if(screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_FOCUS, &has_focus_i) < 0){
+        impl->has_focus = SDL_TRUE;
+    } else {
+        impl->has_focus = has_focus_i ? SDL_TRUE : SDL_FALSE;
     }
 
     window->driverdata = impl;
@@ -247,7 +256,7 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
 
     if(numrects>0){
         rects_int = calloc(4*numrects, sizeof(int));
-        
+
         for(int i = 0; i < numrects; i++){
             rects_int[4*i]   = rects[i].x;
             rects_int[4*i+1] = rects[i].y;
@@ -270,7 +279,28 @@ updateWindowFramebuffer(_THIS, SDL_Window *window, const SDL_Rect *rects,
 static void
 pumpEvents(_THIS)
 {
-    int type;
+    SDL_Window      *window;
+    window_impl_t   *impl;
+    int             type;
+    int             has_focus_i;
+    SDL_bool        has_focus;
+
+    // Let apps know the state of focus.
+    for (window = _this->windows; window; window = window->next) {
+        impl = (window_impl_t *)window->driverdata;
+        if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_FOCUS, &has_focus_i) < 0){
+            printf("qnx/video.c: | Get focus failed with errno %d\n", errno);
+            continue;
+        }
+        has_focus = has_focus_i ? SDL_TRUE : SDL_FALSE;
+
+        if (impl->has_focus != has_focus) {
+            // Assume here that we are always inside the window, since there is
+            // currently no x/y positioning.
+            SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_FOCUS_GAINED : SDL_WINDOWEVENT_FOCUS_LOST), 0, 0);
+            SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_ENTER : SDL_WINDOWEVENT_LEAVE), 0, 0);
+        }
+    }
 
     for (;;) {
         if(!context) break;
@@ -279,7 +309,7 @@ pumpEvents(_THIS)
         }
 
         if(!event) break;
-        
+
         if (screen_get_event_property_iv(event, SCREEN_PROPERTY_TYPE, &type)
             < 0) {
             break;
@@ -497,7 +527,7 @@ int getDisplayBounds(_THIS, SDL_VideoDisplay * display, SDL_Rect * rect){
         free(disp);
         return -1;
     }
-    
+
     rect->w = size[0];
     rect->h = size[1];
     rect->x = 0;

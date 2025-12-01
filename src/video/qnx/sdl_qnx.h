@@ -33,6 +33,7 @@ typedef struct
     EGLConfig       conf;
     int             fs_lastsize[2];
     SDL_bool        is_fullscreen;
+    SDL_bool        has_focus;
 } window_impl_t;
 
 extern void handleKeyboardEvent(screen_event_t event);

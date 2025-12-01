@@ -24,6 +24,7 @@
 #include "SDL_scancode.h"
 #include "SDL_events.h"
 #include "sdl_qnx.h"
+#include "screen_consts.h"
 #include <sys/keycodes.h>
 #include <errno.h>
 
@@ -100,11 +101,20 @@ void
 handleKeyboardEvent(screen_event_t event)
 {
     int             val;
+    int             cap;
+    size_t          ascii_bytes = 2;
+    char            ascii_text[ascii_bytes];
     SDL_Scancode    scancode;
 
     // Get the key value.
     if (screen_get_event_property_iv(event, SCREEN_PROPERTY_SYM, &val) < 0) {
-        printf("Failed to get key w errno %d\n", errno);
+        printf("Failed to get key with errno %d\n", errno);
+        return;
+    }
+
+    if (screen_get_event_property_iv(event, SCREEN_PROPERTY_KEY_CAP,
+                                     &cap) < 0) {
+        printf("Failed to get cap with errno %d\n", errno);
         return;
     }
 
@@ -125,10 +135,19 @@ handleKeyboardEvent(screen_event_t event)
     }
 
     // Propagate the event to SDL.
-    // FIXME:
-    // Need to handle more key states (such as key combinations).
     if (val & KEY_DOWN) {
         SDL_SendKeyboardKey(SDL_PRESSED, scancode);
+
+        // TODO: To simplify, we're ignoring keycodes that aren't just ascii.
+        if ((val < UNICODE_PRIVATE_USE_AREA_FIRST) && ((cap & 0xFF) == cap)) {
+            ascii_text[0] = cap;
+            ascii_text[1] = 0;
+            SDL_SendKeyboardText(ascii_text);
+        } else if ((KEYCODE_PC_KEYS <= val) && (val < KEYCODE_CONSUMER_KEYS)) {
+            ascii_text[0] = val & 0xFF;
+            ascii_text[1] = 0;
+            SDL_SendKeyboardText(ascii_text);
+        }
     } else {
         SDL_SendKeyboardKey(SDL_RELEASED, scancode);
     }
