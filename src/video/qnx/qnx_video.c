@@ -131,7 +131,7 @@ createWindow(_THIS, SDL_Window *window)
         }
 
         numbufs = 2;
-        format = SCREEN_FORMAT_RGBA8888;
+        format = SCREEN_FORMAT_RGBX8888;
 
         usage = SCREEN_USAGE_OPENGL_ES2 | SCREEN_USAGE_OPENGL_ES3;
         if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_USAGE,
@@ -140,7 +140,7 @@ createWindow(_THIS, SDL_Window *window)
             return -1;
         }
     } else {
-        format = SCREEN_FORMAT_RGBA8888;
+        format = SCREEN_FORMAT_RGBX8888;
         numbufs = 2;
     }
 
@@ -221,7 +221,7 @@ createWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format,
     }
 
 
-    *format = SDL_PIXELFORMAT_RGBA8888;
+    *format = SDL_PIXELFORMAT_RGBX8888;
     return 0;
 }
 
@@ -638,7 +638,7 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
 
     for(int i = 0; i < nmodes; i++){
         SDL_DisplayMode Mode;
-        Mode.format = SDL_PIXELFORMAT_RGBA8888;
+        Mode.format = SDL_PIXELFORMAT_RGBX8888;
         Mode.w = modes[i].width;
         Mode.h = modes[i].height;
         Mode.refresh_rate = modes[i].refresh;
