@@ -26,6 +26,119 @@
 
 static EGLDisplay   egl_disp;
 
+struct DummyConfig
+{
+    int red_size;
+    int green_size;
+    int blue_size;
+    int alpha_size;
+    int native_id;
+};
+
+static struct DummyConfig getDummyConfigFromScreenSettings(window_impl_t  *impl, int format)
+{
+    int rc;
+    struct DummyConfig dummyConfig= {};
+
+    dummyConfig.native_id = format;
+    switch (format) {
+         case SCREEN_FORMAT_RGBX4444:
+            dummyConfig.red_size = 4;
+            dummyConfig.green_size = 4;
+            dummyConfig.blue_size = 4;
+            dummyConfig.alpha_size = 4;
+            break;
+         case SCREEN_FORMAT_RGBA5551:
+            dummyConfig.red_size = 5;
+            dummyConfig.green_size = 5;
+            dummyConfig.blue_size = 5;
+            dummyConfig.alpha_size = 1;
+            break;
+         case SCREEN_FORMAT_RGB565:
+            dummyConfig.red_size = 5;
+            dummyConfig.green_size = 6;
+            dummyConfig.blue_size = 5;
+            dummyConfig.alpha_size = 0;
+            break;
+         case SCREEN_FORMAT_RGB888:
+            dummyConfig.red_size = 8;
+            dummyConfig.green_size = 8;
+            dummyConfig.blue_size = 8;
+            dummyConfig.alpha_size = 0;
+            break;
+            case SCREEN_FORMAT_BGRA8888:
+            case SCREEN_FORMAT_BGRX8888:
+            case SCREEN_FORMAT_RGBA8888:
+         case SCREEN_FORMAT_RGBX8888:
+            dummyConfig.red_size = 8;
+            dummyConfig.green_size = 8;
+            dummyConfig.blue_size = 8;
+            dummyConfig.alpha_size = 8;
+            break;
+            default:
+                break;
+    }
+    return dummyConfig;
+}
+
+static EGLConfig chooseConfig(struct DummyConfig dummyConfig, EGLConfig* egl_configs, EGLint egl_num_configs)
+{
+   EGLConfig glConfig = (EGLConfig)0;
+
+    for (size_t ii = 0; ii < egl_num_configs; ii++) {
+        EGLint val;
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_SURFACE_TYPE, &val);
+        if (!(val & EGL_WINDOW_BIT)) {
+            continue;
+        }
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_RENDERABLE_TYPE, &val);
+        if (!(val & EGL_OPENGL_ES2_BIT)) {
+            continue;
+        }
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_DEPTH_SIZE, &val);
+        if (val == 0) {
+            continue;
+        }
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_RED_SIZE, &val);
+        if (val != dummyConfig.red_size) {
+           continue;
+        }
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_GREEN_SIZE, &val);
+        if (val != dummyConfig.green_size) {
+           continue;
+        }
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_BLUE_SIZE, &val);
+        if (val != dummyConfig.blue_size) {
+           continue;
+        }
+
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_ALPHA_SIZE, &val);
+        if (val != dummyConfig.alpha_size) {
+            continue;
+        }
+        if(!glConfig)
+        {
+            glConfig = egl_configs[ii];
+        }
+
+        eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_NATIVE_VISUAL_ID, &val);
+        if ((val != 0) && (val == dummyConfig.native_id)) {
+            return egl_configs[ii];
+        }
+    }
+    return glConfig;
+}
+
+
+/* UNUSED!!! WE NEED TO MAKE SURE WE CAN DYNAMICALLY SET SDL_PIXELFORMAT_*
+ * BEFORE WE DYNAMICALLY SET SCREEN_FORMAT_* */
 /**
  * Detertmines the pixel format to use based on the current display and EGL
  * configuration.
@@ -37,6 +150,12 @@ chooseFormat(EGLConfig egl_conf)
 {
     EGLint buffer_bit_depth;
     EGLint alpha_bit_depth;
+    EGLint nativeid;
+
+    eglGetConfigAttrib(egl_disp, egl_conf, EGL_NATIVE_VISUAL_ID, &nativeid);
+    if (nativeid != 0) {
+        return nativeid;
+    }
 
     eglGetConfigAttrib(egl_disp, egl_conf, EGL_BUFFER_SIZE, &buffer_bit_depth);
     eglGetConfigAttrib(egl_disp, egl_conf, EGL_ALPHA_SIZE, &alpha_bit_depth);
@@ -62,36 +181,35 @@ chooseFormat(EGLConfig egl_conf)
 
 /**
  * Enumerates the supported EGL configurations and chooses a suitable one.
- * @param[out]  pconf   The chosen configuration
+ * @param[in]   impl    window implementation
  * @param[out]  pformat The chosen pixel format
  * @return 0 if successful, -1 on error
  */
 int
-glGetConfig(EGLConfig *pconf, int *pformat)
+glGetConfig(window_impl_t  *impl, int *pformat)
 {
     EGLConfig egl_conf = (EGLConfig)0;
     EGLConfig *egl_configs;
     EGLint egl_num_configs;
-    EGLint val;
     EGLBoolean rc;
-    EGLint i;
+    struct DummyConfig dummyconfig = {};
 
     // Determine the numbfer of configurations.
     rc = eglGetConfigs(egl_disp, NULL, 0, &egl_num_configs);
     if (rc != EGL_TRUE) {
-        printf("qnx/gl.c: | eglGetConfigs failed.\n");
+        SDL_SetError("qnx/gl.c: | eglGetConfigs failed.\n");
         return -1;
     }
 
     if (egl_num_configs == 0) {
-        printf("qnx/gl.c: | eglGetConfigs returned config count of 0.\n");
+        SDL_SetError("qnx/gl.c: | eglGetConfigs returned config count of 0.\n");
         return -1;
     }
 
     // Allocate enough memory for all configurations.
     egl_configs = malloc(egl_num_configs * sizeof(*egl_configs));
     if (egl_configs == NULL) {
-        printf("qnx/gl.c: | malloc failed with errno %d.\n", errno);
+        SDL_SetError("qnx/gl.c: | malloc failed with errno %d.\n", errno);
         return -1;
     }
 
@@ -99,35 +217,18 @@ glGetConfig(EGLConfig *pconf, int *pformat)
     rc = eglGetConfigs(egl_disp, egl_configs, egl_num_configs,
                        &egl_num_configs);
     if (rc != EGL_TRUE) {
-        printf("qnx/gl.c: | eglGetConfigs failed.\n");
+        SDL_SetError("qnx/gl.c: | eglGetConfigs failed.\n");
         free(egl_configs);
         return -1;
     }
+    *pformat = SCREEN_FORMAT_RGBX8888;
 
-    // Find a good configuration.
-    for (i = 0; i < egl_num_configs; i++) {
-        eglGetConfigAttrib(egl_disp, egl_configs[i], EGL_SURFACE_TYPE, &val);
-        if (!(val & EGL_WINDOW_BIT)) {
-            continue;
-        }
 
-        eglGetConfigAttrib(egl_disp, egl_configs[i], EGL_RENDERABLE_TYPE, &val);
-        if (!(val & EGL_OPENGL_ES2_BIT)) {
-            continue;
-        }
-
-        eglGetConfigAttrib(egl_disp, egl_configs[i], EGL_DEPTH_SIZE, &val);
-        if (val == 0) {
-            continue;
-        }
-
-        egl_conf = egl_configs[i];
-        break;
-    }
+    dummyconfig = getDummyConfigFromScreenSettings(impl, SCREEN_FORMAT_RGBX8888);
+    egl_conf = chooseConfig(dummyconfig, egl_configs, egl_num_configs);
 
     free(egl_configs);
-    *pconf = egl_conf;
-    *pformat = chooseFormat(egl_conf);
+    impl->conf = egl_conf;
 
     return 0;
 }
@@ -145,12 +246,12 @@ glLoadLibrary(_THIS, const char *name)
 
     egl_disp = eglGetDisplay(disp_id);
     if (egl_disp == EGL_NO_DISPLAY) {
-        printf("qnx/gl.c: | eglGetDisplay failed.\n");
+        SDL_SetError("qnx/gl.c: | eglGetDisplay failed.\n");
         return -1;
     }
 
     if (eglInitialize(egl_disp, NULL, NULL) == EGL_FALSE) {
-        printf("qnx/gl.c: | eglInitialize failed.\n");
+        SDL_SetError("qnx/gl.c: | eglInitialize failed.\n");
         return -1;
     }
 
@@ -201,14 +302,14 @@ glCreateContext(_THIS, SDL_Window *window)
     context = eglCreateContext(egl_disp, impl->conf, EGL_NO_CONTEXT,
                                (EGLint *)&egl_ctx_attr);
     if (context == EGL_NO_CONTEXT) {
-        printf("qnx/gl.c: | eglCreateContext failed.\n");
+        SDL_SetError("qnx/gl.c: | eglCreateContext failed.\n");
         return NULL;
     }
 
     surface = eglCreateWindowSurface(egl_disp, impl->conf, impl->window,
                                      (EGLint *)&egl_surf_attr);
     if (surface == EGL_NO_SURFACE) {
-        printf("qnx/gl.c: | eglCreateWindowSurface failed.\n");
+        SDL_SetError("qnx/gl.c: | eglCreateWindowSurface failed.\n");
         return NULL;
     }
 
@@ -228,7 +329,7 @@ int
 glSetSwapInterval(_THIS, int interval)
 {
     if (eglSwapInterval(egl_disp, interval) != EGL_TRUE) {
-        printf("qnx/gl.c: | eglSwapInterval failed.\n");
+        SDL_SetError("qnx/gl.c: | eglSwapInterval failed.\n");
         return -1;
     }
 
@@ -268,7 +369,7 @@ glMakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
     }
 
     if (eglMakeCurrent(egl_disp, surface, surface, context) != EGL_TRUE) {
-        printf("qnx/gl.c: | eglMakeCurrent failed.\n");
+        SDL_SetError("qnx/gl.c: | eglMakeCurrent failed.\n");
         return -1;
     }
 
