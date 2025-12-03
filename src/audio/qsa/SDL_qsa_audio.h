@@ -66,20 +66,15 @@ struct SDL_PrivateAudioData
 
 struct SDL_PrivateAudioData
 {
-    /* SDL capture state */
-    SDL_bool iscapture;
-
     /* The audio device handle */
-    int32_t cardno;
-    int32_t deviceno;
-    snd_pcm_t *audio_handle;
-
-    /* Select timeout status */
-    uint32_t timeout_on_wait;
+    snd_pcm_t *pcm_handle;
 
     /* Raw mixing buffer */
-    Uint8 *pcm_buf;
-    Uint32 pcm_len;
+    Uint8 *mixbuf;
+    int mixlen;
+
+    /* swizzle function */
+    void (*swizzle_func)(_THIS, void *buffer, Uint32 bufferlen);
 };
 #endif /* __QNX__ < 800 */
 
