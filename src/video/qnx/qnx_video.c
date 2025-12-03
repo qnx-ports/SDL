@@ -172,7 +172,6 @@ createWindow(_THIS, SDL_Window *window)
         return -1;
     }
 
-    impl->is_fullscreen = SDL_FALSE;
     impl->fs_lastsize[0] = 0;
     impl->fs_lastsize[1] = 1;
 
@@ -525,65 +524,6 @@ deleteDevice(SDL_VideoDevice *device)
     SDL_free(device);
 }
 
-
-void setWindowFullscreen(_THIS, SDL_Window *window, SDL_VideoDisplay *display, SDL_bool fullscreen){
-    window_impl_t       *impl = (window_impl_t*) window->driverdata;
-    screen_display_t    *disp;
-    int                 fullscreen_size[2];
-    int                 ndevices;
-
-
-    if(fullscreen == impl->is_fullscreen) return;
-
-    if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndevices)){
-        printf("qnx/video.c: |  qnx getDisplayDPI Failed to query for display count w errno %d\n", errno);
-        return ;
-    }
-    disp = (screen_display_t*)calloc(ndevices, sizeof(screen_display_t));
-    if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
-        printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
-        free(disp);
-        return ;
-    }
-    if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_SIZE, &fullscreen_size)){
-        printf("qnx/video.c: | qnx getDisplayBounds Failed to query for size w errno %d\n", errno);
-        free(disp);
-        return ;
-    }
-
-    if(fullscreen == SDL_TRUE){
-        if(screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, impl->fs_lastsize)){
-            printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
-            free(disp);
-            return ;
-        }
-        if(screen_get_display_property_iv(disp, SCREEN_PROPERTY_SIZE, fullscreen_size)){
-            printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
-            free(disp);
-            return ;
-        }
-        if(screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, fullscreen_size)){
-            printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
-            free(disp);
-            return ;
-        }
-        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_SIZE, );
-        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SOURCE_SIZE, );
-        impl->is_fullscreen = SDL_TRUE;
-    }else{
-        if(screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, impl->fs_lastsize)){
-            printf("qnx/video.c: | qnx getDisplayDPI Failed to query for display w errno %d\n", errno);
-            free(disp);
-            return ;
-        }
-        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_SIZE, impl->fs_lastsize);
-        //screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SOURCE_SIZE, impl->fs_lastsize);
-        impl->is_fullscreen = SDL_FALSE;
-    }
-
-    free(disp);
-}
-
 /*
 * Get the bounds of a display
 */
@@ -792,7 +732,6 @@ createDevice(int devindex)
     device->PumpEvents = pumpEvents;
     device->DestroyWindow = destroyWindow;
     device->GetWindowWMInfo = getWindowWMInfo;
-    device->SetWindowFullscreen = setWindowFullscreen;
 
     device->GetDisplayBounds = getDisplayBounds;
     device->GetDisplayDPI = getDisplayDPI;

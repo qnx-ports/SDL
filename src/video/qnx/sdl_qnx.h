@@ -32,7 +32,6 @@ typedef struct
     EGLSurface      surface;
     EGLConfig       conf;
     int             fs_lastsize[2];
-    SDL_bool        is_fullscreen;
     SDL_bool        has_focus;
 } window_impl_t;
 
