@@ -21,6 +21,8 @@
 #include "../../SDL_internal.h"
 #include "../SDL_sysvideo.h"
 #include "SDL_syswm.h"
+#include "SDL_video.h"
+#include "../../events/SDL_windowevents_c.h"
 #include "sdl_qnx.h"
 #include "screen_consts.h"
 
