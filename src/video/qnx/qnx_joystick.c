@@ -6,7 +6,6 @@
 #include "SDL_events.h"
 #include "SDL_joystick.h"
 #include "SDL_gamecontroller.h"
-#include "SDL_error.h"
 
 
 /*===========  SDL Headers  =============*/

@@ -636,7 +636,7 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
 
     if(screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &ndisplays)){
         SDL_SetError("qnx/video.c: | qnx getDisplayModes Failed to query for display count w errno %d\n", errno);
-        return -1;
+        return;
     }
     disp = (screen_display_t*)calloc(ndisplays, sizeof(screen_display_t));
 
