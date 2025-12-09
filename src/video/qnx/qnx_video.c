@@ -643,13 +643,13 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
     if(screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, disp)){
         SDL_SetError("qnx/video.c: | qnx getDisplayModes abs Failed to query for displays w errno %d\n", errno);
         free(disp);
-        return -1;
+        return;
     }
 
     if(screen_get_display_property_iv(disp[0], SCREEN_PROPERTY_MODE_COUNT, &nmodes)){
         SDL_SetError("qnx/video.c: | qnx getDisplayModes Failed to query for mode count w errno %d\n", errno);
         free(disp);
-        return -1;
+        return;
     }
     modes = (screen_display_mode_t*)calloc(nmodes, sizeof(screen_display_mode_t));
 
@@ -657,7 +657,7 @@ void getDisplayModes(_THIS, SDL_VideoDisplay * display){
         SDL_SetError("qnx/video.c: | qnx getDisplayModes Failed to query for modes w errno %d\n", errno);
         free(disp);
         free(modes);
-        return -1;
+        return;
     }
 
 
