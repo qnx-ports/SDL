@@ -32,11 +32,17 @@ static screen_event_t   event;
  * Creates the Screen context and event handles used for all window operations
  * by the plugin.
  * @param   SDL_VideoDevice *_this
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 static bool videoInit(SDL_VideoDevice *_this)
 {
     SDL_VideoDisplay display;
+    SDL_DisplayMode  display_mode;
+    int size[2];
+    int index, index2;
+    int display_count, display_mode_count, active;
+    screen_display_t *screen_display;
+    screen_display_mode_t *screen_display_mode;
 
     if (screen_create_context(&context, 0) < 0) {
         return false;
@@ -46,15 +52,82 @@ static bool videoInit(SDL_VideoDevice *_this)
         return false;
     }
 
-    SDL_zero(display);
-
-    if (SDL_AddVideoDisplay(&display, false) == 0) {
+    /* start with no displays and increment as attached displays are found */
+    if (screen_get_context_property_iv(context, SCREEN_PROPERTY_DISPLAY_COUNT, &display_count) < 0) {
         return false;
+    }
+
+    screen_display = calloc(display_count, sizeof(screen_display_t));
+    if (screen_display == NULL) {
+        return false;
+    }
+
+    if (screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, (void **)screen_display) < 0) {
+        return false;
+    }
+
+    /* create SDL displays based on display info from the screen API */
+    for (index = 0; index < display_count; index++) {
+        active = 0;
+        if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_ATTACHED, &active) < 0) {
+            return false;
+        }
+
+        if (active) {
+            if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_SIZE, size) < 0) {
+                return false;
+            }
+
+            SDL_zero(display);
+
+            SDL_zero(display_mode);
+            display_mode.w = size[0];
+            display_mode.h = size[1];
+            display_mode.refresh_rate = 60;
+            display_mode.format = SDL_PIXELFORMAT_RGBX8888;
+            display_mode.driverdata = NULL;
+
+            display.desktop_mode = display_mode;
+            display.current_mode = display_mode;
+
+            if (SDL_AddVideoDisplay(&display, SDL_FALSE) < 0) {
+                return false;
+            }
+
+            /* create SDL display imodes based on display mode info from the display */
+            if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_MODE_COUNT, &display_mode_count) < 0) {
+                return false;
+            }
+
+            screen_display_mode = calloc(display_mode_count, sizeof(screen_display_mode_t));
+            if (screen_display_mode == NULL) {
+                return SDL_OutOfMemory();
+            }
+
+            if(screen_get_display_modes(screen_display[index], display_mode_count, screen_display_mode) < 0) {
+                return false;
+            }
+
+            for (index2 = 0; index2 < display_mode_count; index2++) {
+                SDL_zero(display_mode);
+                display_mode.w = screen_display_mode[index2].width;
+                display_mode.h = screen_display_mode[index2].height;
+                display_mode.refresh_rate = screen_display_mode[index2].refresh;
+                display_mode.format = SDL_PIXELFORMAT_RGBX8888;
+
+                if (SDL_AddDisplayMode(&_this->displays[_this->num_displays-1], &display_mode) < 0) {
+                    return false;
+                }
+            }
+        }
     }
 
     // Assume we have a mouse and keyboard
     SDL_AddKeyboard(SDL_DEFAULT_KEYBOARD_ID, NULL, false);
     SDL_AddMouse(SDL_DEFAULT_MOUSE_ID, NULL, false);
+
+    initialized = 1;
+
 
     return true;
 }
@@ -68,7 +141,7 @@ static void videoQuit(SDL_VideoDevice *_this)
  * window.
  * @param   SDL_VideoDevice *_this
  * @param   window  SDL window to initialize
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window)
 {
@@ -77,6 +150,7 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window)
     int             numbufs;
     int             format;
     int             usage;
+    int             has_focus_i;
 
     impl = SDL_calloc(1, sizeof(*impl));
     if (!impl) {
@@ -104,12 +178,13 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window)
 
     // Create window buffer(s).
     if (window->flags & SDL_WINDOW_OPENGL) {
-        if (glGetConfig(&impl->conf, &format) < 0) {
+        // TODO: Format is hard-coded; can't change here
+        if (!glGetConfig(impl, &format)) {
             goto fail;
         }
         numbufs = 2;
 
-        usage = SCREEN_USAGE_OPENGL_ES2;
+        usage = SCREEN_USAGE_OPENGL_ES2 | SCREEN_USAGE_OPENGL_ES3;
         if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_USAGE,
                                           &usage) < 0) {
             return false;
@@ -126,8 +201,15 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window)
     }
 
     // Create buffer(s).
-    if (screen_create_window_buffers(impl->window, numbufs) < 0) {
+    if (screen_create_window_buffers(impl->window, numbufs>0?numbufs:1) < 0) {
         goto fail;
+    }
+
+    // Get initial focus state. Fallback to true.
+    if(screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_FOCUS, &has_focus_i) < 0){
+        impl->has_focus = true;
+    } else {
+        impl->has_focus = (bool)has_focus_i;
     }
 
     window->internal = impl;
@@ -150,32 +232,38 @@ fail:
  * @param[out]  pixles  Holds a pointer to the window's buffer
  * @param[out]  format  Holds the pixel format for the buffer
  * @param[out]  pitch   Holds the number of bytes per line
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 static bool createWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window * window, SDL_PixelFormat * format,
                         void ** pixels, int *pitch)
 {
     window_impl_t   *impl = (window_impl_t *)window->internal;
-    screen_buffer_t buffer;
+    screen_buffer_t *buffer;
+
+    if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
+                                      &buffer_count) < 0) {
+        return false;
+    }
+    buffer = calloc(buffer_count, sizeof(screen_buffer_t));
 
     // Get a pointer to the buffer's memory.
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
-                                      (void **)&buffer) < 0) {
+                                      (void **)buffer) < 0) {
         return false;
     }
 
-    if (screen_get_buffer_property_pv(buffer, SCREEN_PROPERTY_POINTER,
+    if (screen_get_buffer_property_pv(*buffer, SCREEN_PROPERTY_POINTER,
                                       pixels) < 0) {
         return false;
     }
 
     // Set format and pitch.
-    if (screen_get_buffer_property_iv(buffer, SCREEN_PROPERTY_STRIDE,
+    if (screen_get_buffer_property_iv(*buffer, SCREEN_PROPERTY_STRIDE,
                                       pitch) < 0) {
         return false;
     }
 
-    *format = SDL_PIXELFORMAT_XRGB8888;
+    *format = SDL_PIXELFORMAT_RGBX8888;
     return true;
 }
 
@@ -185,21 +273,43 @@ static bool createWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window * window,
  * @param   window      The window to update
  * @param   rects       An array of reectangular areas to update
  * @param   numrects    Rect array length
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 static bool updateWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window *window, const SDL_Rect *rects,
                         int numrects)
 {
+    int buffer_count, *rects_int;
     window_impl_t   *impl = (window_impl_t *)window->internal;
-    screen_buffer_t buffer;
+    screen_buffer_t *buffer;
+
+    if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_BUFFER_COUNT,
+                                      &buffer_count) < 0) {
+        return false;
+    }
+    buffer = calloc(buffer_count, sizeof(screen_buffer_t));
 
     if (screen_get_window_property_pv(impl->window, SCREEN_PROPERTY_BUFFERS,
-                                      (void **)&buffer) < 0) {
+                                      buffer) < 0) {
         return false;
     }
 
-    screen_post_window(impl->window, buffer, numrects, (int *)rects, 0);
-    screen_flush_context(context, 0);
+    if(numrects>0){
+        rects_int = calloc(4*numrects, sizeof(int));
+
+        for(int i = 0; i < numrects; i++){
+            rects_int[4*i]   = rects[i].x;
+            rects_int[4*i+1] = rects[i].y;
+            rects_int[4*i+2] = rects[i].w;
+            rects_int[4*i+3] = rects[i].h;
+        }
+
+        if(screen_post_window(impl->window, buffer[0], numrects, rects_int, 0)) {
+            return false;
+        }
+        if(screen_flush_context(context, 0)) {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -210,6 +320,24 @@ static bool updateWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window *window, 
 static void pumpEvents(SDL_VideoDevice *_this)
 {
     int             type;
+    int             has_focus_i;
+    bool            has_focus;
+
+    // Let apps know the state of focus.
+    for (window = _this->windows; window; window = window->next) {
+        impl = (window_impl_t *)window->internal;
+        if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_FOCUS, &has_focus_i) < 0){
+            continue;
+        }
+        has_focus = (bool)has_focus_i;
+
+        if (impl->has_focus != has_focus) {
+            // Assume here that we are always inside the window, since there is
+            // currently no x/y positioning.
+            SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_FOCUS_GAINED : SDL_WINDOWEVENT_FOCUS_LOST), 0, 0);
+            SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_ENTER : SDL_WINDOWEVENT_LEAVE), 0, 0);
+        }
+    }
 
     for (;;) {
         if (screen_get_event(context, event, 0) < 0) {
@@ -230,6 +358,17 @@ static void pumpEvents(SDL_VideoDevice *_this)
             handleKeyboardEvent(event);
             break;
 
+        case SCREEN_EVENT_POINTER:
+            handlePointerEvent(event);
+            break;
+
+#ifdef SDL_JOYSTICK_QNX
+        case SCREEN_EVENT_GAMEPAD:
+        case SCREEN_EVENT_JOYSTICK:
+            handleJoystickEvent(event);
+            break;
+#endif
+
         default:
             break;
         }
@@ -249,8 +388,15 @@ static void setWindowSize(SDL_VideoDevice *_this, SDL_Window *window)
     size[0] = window->pending.w;
     size[1] = window->pending.h;
 
+    if (screen_destroy_window_buffers(impl->window) < 0) {
+        return;
+    }
+    impl->resize = 1;
+
     screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SIZE, size);
     screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_SOURCE_SIZE, size);
+
+    screen_create_window_buffers(impl->window, (window->flags & SDL_WINDOW_OPENGL) ? 2 : 1);
 }
 
 /**
@@ -297,6 +443,35 @@ static void destroyWindow(SDL_VideoDevice *_this, SDL_Window *window)
 }
 
 /**
+ * Returns information about the window type.
+ * @param   SDL_VideoDevice *_this
+ * @param   window  SDL window to get info for
+ * @param   info    The resulting info
+ * @return  true if successful, false on error
+ */
+static bool getWindowWMInfo(SDL_VideoDevice *_this, SDL_Window * window,
+                            SDL_SysWMinfo * info)
+{
+    window_impl_t   *impl = (window_impl_t *)window->internal;
+
+    if (!impl) {
+        return false;
+    }
+
+    if (info->version.major == SDL_MAJOR_VERSION &&
+        info->version.minor == SDL_MINOR_VERSION) {
+        info->subsystem = SDL_SYSWM_QNX;
+        info->info.qnx.window = &impl->window;
+        info->info.qnx.surface = impl->surface;
+        return true;
+    } else {
+        SDL_SetError("Application not compiled with SDL %d.%d",
+                     SDL_MAJOR_VERSION, SDL_MINOR_VERSION);
+        return false;
+    }
+}
+
+/**
  * Frees the plugin object created by createDevice().
  * @param   device  Plugin object to free
  */
@@ -329,6 +504,7 @@ static SDL_VideoDevice *createDevice(void)
     device->HideWindow = hideWindow;
     device->PumpEvents = pumpEvents;
     device->DestroyWindow = destroyWindow;
+    device->GetWindowWMInfo = getWindowWMInfo;
 
     device->GL_LoadLibrary = glLoadLibrary;
     device->GL_GetProcAddress = glGetProcAddress;

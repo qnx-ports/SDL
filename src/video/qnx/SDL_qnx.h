@@ -31,6 +31,9 @@ typedef struct
     screen_window_t window;
     EGLSurface      surface;
     EGLConfig       conf;
+    SDL_GLContext   context;
+    int             resize;
+    bool            has_focus;
 } window_impl_t;
 
 extern void handleKeyboardEvent(screen_event_t event);
