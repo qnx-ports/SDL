@@ -26,6 +26,7 @@
 #include "../../events/SDL_mouse_c.h"
 #include "sdl_qnx.h"
 #include "screen_consts.h"
+#include "../../events/SDL_windowevents_c.h"
 
 #include <errno.h>
 
@@ -139,6 +140,8 @@ videoInit(_THIS)
             }
         }
     }
+
+    initMouse(_this);
 
     initialized = 1;
 

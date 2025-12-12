@@ -23,17 +23,17 @@ int screenToMouseButton(int x)
 
 void handlePointerEvent(screen_event_t event)
 {
-    int buttons = 0;
-    int mouse_wheel = 0;
-    int mouse_h_wheel = 0;
-    int pos[2] = {0,0};
-    int x_win = 0;
-    int y_win = 0;
+    int              buttons = 0;
+    int              mouse_wheel = 0;
+    int              mouse_h_wheel = 0;
+    int              pos[2] = {0,0};
+    int              x_win = 0;
+    int              y_win = 0;
 
-    SDL_Mouse *mouse;
-    SDL_Window *window;
+    SDL_Mouse        *mouse;
+    SDL_Window       *window;
     SDL_VideoDisplay *display;
-    SDL_DisplayMode display_mode;
+    SDL_DisplayMode  display_mode;
 
     screen_get_event_property_iv(event, SCREEN_PROPERTY_BUTTONS, &buttons);
     screen_get_event_property_iv(event, SCREEN_PROPERTY_MOUSE_WHEEL, &mouse_wheel);

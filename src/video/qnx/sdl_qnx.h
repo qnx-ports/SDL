@@ -35,6 +35,13 @@ typedef struct
     SDL_bool        has_focus;
 } window_impl_t;
 
+typedef struct
+{
+    screen_session_t session;
+    int              realized_shape;
+    int              is_visible;
+} cursor_impl_t;
+
 extern void handleKeyboardEvent(screen_event_t event);
 extern void handleJoystickEvent(screen_event_t event);
 extern void handlePointerEvent(screen_event_t event);
@@ -48,5 +55,7 @@ extern int glSwapWindow(_THIS, SDL_Window *window);
 extern int glMakeCurrent(_THIS, SDL_Window * window, SDL_GLContext context);
 extern void glDeleteContext(_THIS, SDL_GLContext context);
 extern void glUnloadLibrary(_THIS);
+
+extern void initMouse(_THIS);
 
 #endif
