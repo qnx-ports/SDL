@@ -23,6 +23,7 @@
 #include "SDL_syswm.h"
 #include "SDL_video.h"
 #include "../../events/SDL_windowevents_c.h"
+#include "../../events/SDL_mouse_c.h"
 #include "sdl_qnx.h"
 #include "screen_consts.h"
 
@@ -198,6 +199,8 @@ createWindow(_THIS, SDL_Window *window)
         goto fail;
     }
 
+    pos[0] = window->x;
+    pos[1] = window->y;
     if (screen_set_window_property_iv(impl->window, SCREEN_PROPERTY_POSITION,
                                       pos) < 0) {
         SDL_SetError("qnx/video.c: | Setting SCREEN_PROPERTY_POSITION failed with errno %d\n", errno);
@@ -377,10 +380,10 @@ pumpEvents(_THIS)
         has_focus = has_focus_i ? SDL_TRUE : SDL_FALSE;
 
         if (impl->has_focus != has_focus) {
-            // Assume here that we are always inside the window, since there is
-            // currently no x/y positioning.
             SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_FOCUS_GAINED : SDL_WINDOWEVENT_FOCUS_LOST), 0, 0);
             SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_ENTER : SDL_WINDOWEVENT_LEAVE), 0, 0);
+            // Update the SDL mouse to track the window it's focused on.
+            SDL_SetMouseFocus(window);
         }
     }
 
