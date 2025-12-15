@@ -55,8 +55,8 @@ void handlePointerEvent(screen_event_t event)
         // Capture movement
         // Scale from position relative to display to position relative to window.
         // TODO: We're ignoring the positibility of centered windows.
-        x_win = ((pos[0] - window->x) * window->w) / display_mode.w;
-        y_win = ((pos[1] - window->y) * window->h) / display_mode.h;
+        x_win = pos[0] - window->x;
+        y_win = pos[1] - window->y;
 
         SDL_SendMouseMotion(window, mouse->mouseID, 0, x_win, y_win);
 
