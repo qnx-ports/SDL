@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 2017 BlackBerry Limited
+  Copyright (C) 2025 BlackBerry Limited
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -18,14 +18,15 @@
      misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
+
 #include "../../SDL_internal.h"
 #include "../SDL_sysvideo.h"
 #include "../../events/SDL_keyboard_c.h"
 #include "../../events/SDL_mouse_c.h"
 #include "SDL_qnx.h"
 
-static screen_context_t context;
-static screen_event_t   event;
+screen_context_t context;
+screen_event_t   event;
 
 /**
  * Initializes the QNX video plugin.
@@ -70,11 +71,15 @@ static bool videoInit(SDL_VideoDevice *_this)
     for (index = 0; index < display_count; index++) {
         active = 0;
         if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_ATTACHED, &active) < 0) {
+            SDL_SetError("qnx/video.c: | Display count retrieval failure with errno %d\n", errno);
+            free(screen_display);
             return false;
         }
 
         if (active) {
             if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_SIZE, size) < 0) {
+                SDL_SetError("qnx/video.c: | Display size retrieval failure with errno %d\n", errno);
+                free(screen_display);
                 return false;
             }
 
@@ -91,20 +96,29 @@ static bool videoInit(SDL_VideoDevice *_this)
             display.current_mode = display_mode;
 
             if (SDL_AddVideoDisplay(&display, SDL_FALSE) < 0) {
+                SDL_SetError("qnx/video.c: | SDL_AddVideoDisplay Failed.\n");
+                free(screen_display);
                 return false;
             }
 
             /* create SDL display imodes based on display mode info from the display */
             if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_MODE_COUNT, &display_mode_count) < 0) {
+                SDL_SetError("qnx/video.c: | Display mode count retrieval failure with errno %d\n", errno);
+                free(screen_display);
                 return false;
             }
 
             screen_display_mode = calloc(display_mode_count, sizeof(screen_display_mode_t));
             if (screen_display_mode == NULL) {
+                SDL_SetError("qnx/video.c: | Display mode allocation failure with errno %d\n", errno);
+                free(screen_display);
                 return SDL_OutOfMemory();
             }
 
             if(screen_get_display_modes(screen_display[index], display_mode_count, screen_display_mode) < 0) {
+                SDL_SetError("qnx/video.c: | Display mode retrieval failure with errno %d\n", errno);
+                free(screen_display);
+                free(screen_display_mode);
                 return false;
             }
 
@@ -116,11 +130,18 @@ static bool videoInit(SDL_VideoDevice *_this)
                 display_mode.format = SDL_PIXELFORMAT_RGBX8888;
 
                 if (SDL_AddDisplayMode(&_this->displays[_this->num_displays-1], &display_mode) < 0) {
+                    SDL_SetError("qnx/video.c: | SDL_AddDisplayMode Failed.\n");
+                    free(screen_display);
+                    free(screen_display_mode);
                     return false;
                 }
             }
+
+            free(screen_display_mode);
         }
     }
+
+    initMouse(_this);
 
     // Assume we have a mouse and keyboard
     SDL_AddKeyboard(SDL_DEFAULT_KEYBOARD_ID, NULL, false);
@@ -128,12 +149,15 @@ static bool videoInit(SDL_VideoDevice *_this)
 
     initialized = 1;
 
+    free(screen_display);
 
     return true;
 }
 
 static void videoQuit(SDL_VideoDevice *_this)
 {
+    screen_destroy_event(event);
+    screen_destroy_context(context);
 }
 
 /**
@@ -332,10 +356,10 @@ static void pumpEvents(SDL_VideoDevice *_this)
         has_focus = (bool)has_focus_i;
 
         if (impl->has_focus != has_focus) {
-            // Assume here that we are always inside the window, since there is
-            // currently no x/y positioning.
             SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_FOCUS_GAINED : SDL_WINDOWEVENT_FOCUS_LOST), 0, 0);
             SDL_SendWindowEvent(window, (has_focus ? SDL_WINDOWEVENT_ENTER : SDL_WINDOWEVENT_LEAVE), 0, 0);
+            // Update the SDL mouse to track the window it's focused on.
+            SDL_SetMouseFocus(window);
         }
     }
 

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 2017 BlackBerry Limited
+  Copyright (C) 2025 BlackBerry Limited
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -220,7 +220,7 @@ bool glGetConfig(window_impl_t  *impl, int *pformat)
  * Initializes the EGL library.
  * @param   SDL_VideoDevice *_this
  * @param   name    unused
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 bool glLoadLibrary(SDL_VideoDevice *_this, const char *name)
 {
@@ -301,7 +301,7 @@ SDL_GLContext glCreateContext(SDL_VideoDevice *_this, SDL_Window *window)
  * Sets a new value for the number of frames to display before swapping buffers.
  * @param   SDL_VideoDevice *_this
  * @param   interval    New interval value
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 bool glSetSwapInterval(SDL_VideoDevice *_this, int interval)
 {
@@ -316,7 +316,7 @@ bool glSetSwapInterval(SDL_VideoDevice *_this, int interval)
  * Swaps the EGL buffers associated with the given window
  * @param   SDL_VideoDevice *_this
  * @param   window  Window to swap buffers for
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
 {
@@ -334,7 +334,7 @@ bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
             };
 
             if (eglMakeCurrent(egl_disp, NULL, NULL, impl->context) != EGL_TRUE) {
-                return -1;
+                return false;
             }
             if (eglDestroySurface(egl_disp, impl->surface) != EGL_TRUE) {
             }
@@ -342,18 +342,18 @@ bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
             surface = eglCreateWindowSurface(egl_disp, impl->conf, impl->window,
                                      (EGLint *)&egl_surf_attr);
             if (surface == EGL_NO_SURFACE) {
-                return -1;
+                return false;
             }
 
             if (eglMakeCurrent(egl_disp, surface, surface, impl->context) != EGL_TRUE) {
-                return -1;
+                return false;
             }
 
             impl->surface = surface;
             impl->resize = 0;
         }
     }
-    return eglSwapBuffers(egl_disp, impl->surface) == EGL_TRUE ? 0 : -1;
+    return eglSwapBuffers(egl_disp, impl->surface) == EGL_TRUE ? true : false;
 }
 
 /**
@@ -361,7 +361,7 @@ bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
  * @param   SDL_VideoDevice *_this
  * @param   window  SDL window associated with the context (maybe NULL)
  * @param   context The context to activate
- * @return  0 if successful, -1 on error
+ * @return  true if successful, false on error
  */
 bool glMakeCurrent(SDL_VideoDevice *_this, SDL_Window *window, SDL_GLContext context)
 {

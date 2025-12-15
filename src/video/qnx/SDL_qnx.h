@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 2017 BlackBerry Limited
+  Copyright (C) 2025 BlackBerry Limited
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -47,5 +47,7 @@ extern bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern bool glMakeCurrent(SDL_VideoDevice *_this, SDL_Window * window, SDL_GLContext context);
 extern void glDeleteContext(SDL_VideoDevice *_this, SDL_GLContext context);
 extern void glUnloadLibrary(SDL_VideoDevice *_this);
+
+extern void initMouse(_THIS);
 
 #endif
