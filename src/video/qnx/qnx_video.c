@@ -75,6 +75,7 @@ videoInit(_THIS)
 
     if (screen_get_context_property_pv(context, SCREEN_PROPERTY_DISPLAYS, (void **)screen_display) < 0) {
         SDL_SetError("qnx/video.c: | Displays retrieval failure with errno %d\n", errno);
+        free(screen_display);
         return -1;
     }
 
@@ -83,12 +84,14 @@ videoInit(_THIS)
         active = 0;
         if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_ATTACHED, &active) < 0) {
             SDL_SetError("qnx/video.c: | Display count retrieval failure with errno %d\n", errno);
+            free(screen_display);
             return -1;
         }
 
         if (active) {
             if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_SIZE, size) < 0) {
                 SDL_SetError("qnx/video.c: | Display size retrieval failure with errno %d\n", errno);
+                free(screen_display);
                 return -1;
             }
 
@@ -106,23 +109,28 @@ videoInit(_THIS)
 
             if (SDL_AddVideoDisplay(&display, SDL_FALSE) < 0) {
                 SDL_SetError("qnx/video.c: | SDL_AddVideoDisplay Failed.\n");
+                free(screen_display);
                 return -1;
             }
 
             /* create SDL display imodes based on display mode info from the display */
             if (screen_get_display_property_iv(screen_display[index], SCREEN_PROPERTY_MODE_COUNT, &display_mode_count) < 0) {
                 SDL_SetError("qnx/video.c: | Display mode count retrieval failure with errno %d\n", errno);
+                free(screen_display);
                 return -1;
             }
 
             screen_display_mode = calloc(display_mode_count, sizeof(screen_display_mode_t));
             if (screen_display_mode == NULL) {
                 SDL_SetError("qnx/video.c: | Display mode allocation failure with errno %d\n", errno);
+                free(screen_display);
                 return SDL_OutOfMemory();
             }
 
             if(screen_get_display_modes(screen_display[index], display_mode_count, screen_display_mode) < 0) {
                 SDL_SetError("qnx/video.c: | Display mode retrieval failure with errno %d\n", errno);
+                free(screen_display);
+                free(screen_display_mode);
                 return -1;
             }
 
@@ -135,9 +143,13 @@ videoInit(_THIS)
 
                 if (SDL_AddDisplayMode(&_this->displays[_this->num_displays-1], &display_mode) < 0) {
                     SDL_SetError("qnx/video.c: | SDL_AddDisplayMode Failed.\n");
+                    free(screen_display);
+                    free(screen_display_mode);
                     return -1;
                 }
             }
+
+            free(screen_display_mode);
         }
     }
 
@@ -145,6 +157,7 @@ videoInit(_THIS)
 
     initialized = 1;
 
+    free(screen_display);
 
     return 0;
 }
@@ -152,6 +165,8 @@ videoInit(_THIS)
 static void
 videoQuit(_THIS)
 {
+    screen_destroy_event(event);
+    screen_destroy_context(context);
 }
 
 /**
