@@ -19,20 +19,18 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "SDL.h"
-#include "SDL_error.h"
+#include "SDL3/SDL_error.h"
 #include "../../SDL_internal.h"
 #include "../../joystick/SDL_joystick_c.h"
 #include "../../joystick/SDL_sysjoystick.h"
-#include "SDL_events.h"
-#include "SDL_joystick.h"
-#include "SDL_gamecontroller.h"
+#include "SDL3/SDL_events.h"
+#include "SDL3/SDL_joystick.h"
+#include "SDL3/SDL_gamepad.h"
 
 
 /*===========  SDL Headers  =============*/
-#include "sdl_qnx.h"
+#include "SDL_qnx.h"
 #include "errno.h"
-#include "screen_consts.h"
 
 #include "sys/usbdi.h"
 
@@ -56,23 +54,23 @@ SDL_JoystickID next_id = 0;
 int has_init = 0;
 
 Uint8 button_to_SDL(unsigned button){
-	if( button & SCREEN_A_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_A;
-	if( button & SCREEN_B_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_B;
-	if( button & SCREEN_X_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_X;
-	if( button & SCREEN_Y_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_Y;
-	if( button & SCREEN_MENU1_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_START;
-	if( button & SCREEN_MENU2_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_BACK;
-	if( button & SCREEN_MENU3_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_GUIDE;
-	if( button & SCREEN_L1_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
-	if( button & SCREEN_L2_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
-	if( button & SCREEN_L3_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_LEFTSTICK;
-	if( button & SCREEN_R1_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
-	if( button & SCREEN_R2_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
-	if( button & SCREEN_R3_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_RIGHTSTICK;
-	if( button & SCREEN_DPAD_UP_GAME_BUTTON) return	SDL_CONTROLLER_BUTTON_DPAD_UP;
-	if( button & SCREEN_DPAD_DOWN_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_DPAD_DOWN;
-	if( button & SCREEN_DPAD_LEFT_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_DPAD_LEFT;
-	if( button & SCREEN_DPAD_RIGHT_GAME_BUTTON) return SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+	if( button & SCREEN_A_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_SOUTH;
+	if( button & SCREEN_B_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_EAST;
+	if( button & SCREEN_X_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_WEST;
+	if( button & SCREEN_Y_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_NORTH;
+	if( button & SCREEN_MENU1_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_START;
+	if( button & SCREEN_MENU2_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_BACK;
+	if( button & SCREEN_MENU3_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_GUIDE;
+	if( button & SCREEN_L1_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
+	if( button & SCREEN_L2_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_LEFT_SHOULDER;
+	if( button & SCREEN_L3_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_LEFT_STICK;
+	if( button & SCREEN_R1_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+	if( button & SCREEN_R2_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER;
+	if( button & SCREEN_R3_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_RIGHT_STICK;
+	if( button & SCREEN_DPAD_UP_GAME_BUTTON) return	SDL_GAMEPAD_BUTTON_DPAD_UP;
+	if( button & SCREEN_DPAD_DOWN_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_DPAD_DOWN;
+	if( button & SCREEN_DPAD_LEFT_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_DPAD_LEFT;
+	if( button & SCREEN_DPAD_RIGHT_GAME_BUTTON) return SDL_GAMEPAD_BUTTON_DPAD_RIGHT;
 	return 0xFF;
 }
 
@@ -175,6 +173,11 @@ int convert_to_SDL_sticksize(int convert, int screen_max){
 //###################################################################
 static void QNX_JoystickDetect(void){}
 
+static bool QNX_JoystickIsDevicePresent(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name){
+    // TODO: Confirm this.
+    return false;
+}
+
 //##################################################################
 
 static int QNX_JoystickGetCount(void){
@@ -196,6 +199,7 @@ SDL_Joystick* index_to_joystick(int index){
 	check = QNX_JoystickGetCount();
 	if(index > check) return NULL;
 
+	next = data_list;
 	while(next){
 		if(index < 0) return NULL;
 		if(index == 0) return (next->attached)? next->attached: NULL;
@@ -224,10 +228,8 @@ struct joystick_hwdata* index_to_hwdata(int index){
 	return NULL;
 }
 
-// Detects for joysticks and returns a count.
-static int QNX_JoystickInit(void){
-	//SDL_joystick_allows_background_events = SDL_TRUE;
-	return QNX_JoystickGetCount();
+static bool QNX_JoystickInit(void){
+	return true;
 }
 
 static void QNX_JoystickQuit(void){
@@ -236,6 +238,14 @@ static void QNX_JoystickQuit(void){
 
 static const char * QNX_JoystickGetDeviceName(int device_index){
 	return "qnx_joypad"; //TODO: Actual device name
+}
+
+static const char * QNX_JoystickGetDevicePath(int device_index){
+	return NULL;
+}
+
+static int QNX_JoystickGetDeviceSteamVirtualGamepadSlot(int device_index){
+	return -1;
 }
 
 static int QNX_JoystickGetDevicePlayerIndex(int device_index) {
@@ -255,7 +265,6 @@ static bool QNX_JoystickOpen(SDL_Joystick * joystick, int device_index){
 	struct joystick_hwdata* data;
 
 	if(!joystick) return false;
-	if(!SDL_PrivateJoystickValid(joystick)) return false;
 
 	data = index_to_hwdata(device_index);
 
@@ -279,26 +288,22 @@ static bool QNX_JoystickRumbleTriggers(SDL_Joystick *joystick, Uint16 left_rumbl
     return SDL_Unsupported();
 }
 
-static bool QNX_JoystickHasLED(SDL_Joystick *joystick) {
-    return false;
-}
-
 static bool QNX_JoystickSetLED(SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue) {
     return SDL_Unsupported();
 }
 
-static bool QNX_JoystickSetSensorsEnabled(SDL_Joystick *joystick, SDL_bool enabled) {
+static bool QNX_JoystickSendEffect(SDL_Joystick *joystick, const void *data, int size) {
     return SDL_Unsupported();
 }
 
-static bool QNX_JoystickAttached(SDL_Joystick *joystick){
-	return joystick->hwdata? SDL_TRUE: SDL_FALSE;
+static bool QNX_JoystickSetSensorsEnabled(SDL_Joystick *joystick, bool enabled) {
+    return SDL_Unsupported();
 }
 
-static SDL_JoystickGUID QNX_JoystickGetDeviceGUID(int device_index){
-	SDL_JoystickGUID toReturn;
+static SDL_GUID QNX_JoystickGetDeviceGUID(int device_index){
+	SDL_GUID toReturn;
 
-	for (int i = 0; i < 16; i++) toReturn.data[i] = 0;
+	for (int i = 0; i < 16; ++i) toReturn.data[i] = 0;
 
 	return toReturn;
 }
@@ -311,8 +316,8 @@ static void QNX_JoystickClose(SDL_Joystick* joystick){
 }
 
 static void QNX_JoystickUpdate(SDL_Joystick * joystick){
-	int index;
 	unsigned diff, release, press;
+    Uint64   timestamp = SDL_GetTicksNS();
 
 	if(!joystick) return;
 	if(!(joystick->hwdata)) return;
@@ -323,19 +328,19 @@ static void QNX_JoystickUpdate(SDL_Joystick * joystick){
 
 	if(joystick->hwdata->a0x_up == 1){
 		joystick->hwdata->a0x_up = 0;
-		SDL_PrivateJoystickAxis(joystick, SDL_CONTROLLER_AXIS_LEFTX, joystick->hwdata->analog0_x);
+		SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_LEFTX, joystick->hwdata->analog0_x);
 	}
 	if(joystick->hwdata->a0y_up == 1){
 		joystick->hwdata->a0y_up = 0;
-		SDL_PrivateJoystickAxis(joystick, SDL_CONTROLLER_AXIS_LEFTY, joystick->hwdata->analog0_y);
+		SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_LEFTY, joystick->hwdata->analog0_y);
 	}
 	if(joystick->hwdata->a1x_up == 1){
 		joystick->hwdata->a1x_up = 0;
-		SDL_PrivateJoystickAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTX, joystick->hwdata->analog1_x);
+		SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_RIGHTX, joystick->hwdata->analog1_x);
 	}
 	if(joystick->hwdata->a1y_up == 1){
 		joystick->hwdata->a1y_up = 0;
-		SDL_PrivateJoystickAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, joystick->hwdata->analog1_y);
+		SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_RIGHTY, joystick->hwdata->analog1_y);
 	}
 
 	for (int i = 0; i < SCREEN_MASK_LENGTH; i++){
@@ -343,22 +348,18 @@ static void QNX_JoystickUpdate(SDL_Joystick * joystick){
 		button = button_to_SDL(1 << i);
 		if(button == 0xFF) continue;
 		if((release >> i) & 0b1){
-			SDL_PrivateJoystickButton(joystick, button, SDL_RELEASED);
+			SDL_SendJoystickButton(timestamp, joystick, button, false);
 		}
 		if((press >> i) & 0b1){
-			SDL_PrivateJoystickButton(joystick, button, SDL_PRESSED);
+			SDL_SendJoystickButton(timestamp, joystick, button, true);
 		}
 	}
 
 	joystick->hwdata->last_buttons = joystick->hwdata->current_buttons;
 }
 
-static SDL_JoystickGUID QNX_JoystickGetGUID(SDL_Joystick * joystick){
-	return QNX_JoystickGetDeviceGUID(0); //temporary.
-}
-
 static bool QNX_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *out) {
-    return SDL_FALSE;
+    return false;
 }
 
 /**
@@ -366,9 +367,9 @@ static bool QNX_JoystickGetGamepadMapping(int device_index, SDL_GamepadMapping *
  */
 void handleJoystickEvent(screen_event_t event){
 	struct joystick_hwdata * stick;
-	unsigned screen_button_out=0;
+	int screen_button_out=0;
 	screen_device_t temp;
-	int index, deviceid, size;
+	int deviceid, size;
 	int analog[3] = {0, 0, 0};
 
 	if(has_init < 10){has_init++; return;}
@@ -376,7 +377,7 @@ void handleJoystickEvent(screen_event_t event){
 	if(!event) return;
 
 	screen_get_event_property_iv(event, SCREEN_PROPERTY_BUTTONS, &screen_button_out);
-	if(screen_get_event_property_pv(event, SCREEN_PROPERTY_DEVICE, &temp)!=0) return;
+	if(screen_get_event_property_pv(event, SCREEN_PROPERTY_DEVICE, (void**)&temp)!=0) return;
 	if(!temp) return;
 
 	if(screen_get_device_property_iv(temp, SCREEN_PROPERTY_ID, &deviceid)) return;
@@ -387,7 +388,7 @@ void handleJoystickEvent(screen_event_t event){
 		stick = alloc_hwdata(deviceid);
 	if(!stick) return;
 
-	stick->current_buttons = screen_button_out;
+	stick->current_buttons = (unsigned)screen_button_out;
 
 	screen_get_event_property_iv(event, SCREEN_PROPERTY_SIZE, &size);
 
@@ -403,9 +404,7 @@ void handleJoystickEvent(screen_event_t event){
 	}
 
 	if(stick->attached){
-		if(SDL_PrivateJoystickValid(stick->attached)){
-			QNX_JoystickUpdate(stick->attached);
-		}
+        QNX_JoystickUpdate(stick->attached);
 	}
 }
 
@@ -414,7 +413,10 @@ SDL_JoystickDriver SDL_QNX_JoystickDriver =
     QNX_JoystickInit,
     QNX_JoystickGetCount,
     QNX_JoystickDetect,
+    QNX_JoystickIsDevicePresent,
     QNX_JoystickGetDeviceName,
+    QNX_JoystickGetDevicePath,
+    QNX_JoystickGetDeviceSteamVirtualGamepadSlot,
     QNX_JoystickGetDevicePlayerIndex,
     QNX_JoystickSetDevicePlayerIndex,
     QNX_JoystickGetDeviceGUID,
@@ -422,8 +424,8 @@ SDL_JoystickDriver SDL_QNX_JoystickDriver =
     QNX_JoystickOpen,
     QNX_JoystickRumble,
     QNX_JoystickRumbleTriggers,
-    QNX_JoystickHasLED,
     QNX_JoystickSetLED,
+    QNX_JoystickSendEffect,
     QNX_JoystickSetSensorsEnabled,
     QNX_JoystickUpdate,
     QNX_JoystickClose,

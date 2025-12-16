@@ -21,8 +21,7 @@
 
 #include "../../SDL_internal.h"
 #include "../SDL_sysvideo.h"
-#include "SDL_syswm.h"
-#include "sdl_qnx.h"
+#include "SDL_qnx.h"
 #include "SDL_qnxscreenconsts.h"
 #include "../../events/SDL_mouse_c.h"
 
@@ -34,12 +33,12 @@
 static SDL_Cursor *createCursor(SDL_Surface * surface, int hot_x, int hot_y)
 {
     SDL_Cursor          *cursor;
-    cursor_impl_t       *impl;
+    SDL_CursorData      *impl;
     screen_session_t    session;
 
     cursor = SDL_calloc(1, sizeof(SDL_Cursor));
     if (cursor) {
-        impl = SDL_calloc(1, sizeof(cursor_impl_t));;
+        impl = SDL_calloc(1, sizeof(SDL_CursorData));;
         if (impl == NULL) {
             free(cursor);
             SDL_OutOfMemory();
@@ -51,7 +50,7 @@ static SDL_Cursor *createCursor(SDL_Surface * surface, int hot_x, int hot_y)
 
         impl->session = session;
         impl->is_visible = 1;
-        cursor->driverdata = (void*)impl;
+        cursor->internal = (void*)impl;
     } else {
         SDL_OutOfMemory();
     }
@@ -62,7 +61,7 @@ static SDL_Cursor *createCursor(SDL_Surface * surface, int hot_x, int hot_y)
 static SDL_Cursor *createSystemCursor(SDL_SystemCursor id)
 {
     SDL_Cursor          *cursor;
-    cursor_impl_t       *impl;
+    SDL_CursorData      *impl;
     screen_session_t    session;
     int shape;
 
@@ -71,23 +70,22 @@ static SDL_Cursor *createSystemCursor(SDL_SystemCursor id)
     default:
         SDL_assert(0);
         return NULL;
-    case SDL_SYSTEM_CURSOR_ARROW:     shape = SCREEN_CURSOR_SHAPE_ARROW; break;
-    case SDL_SYSTEM_CURSOR_IBEAM:     shape = SCREEN_CURSOR_SHAPE_IBEAM; break;
-    case SDL_SYSTEM_CURSOR_WAIT:      shape = SCREEN_CURSOR_SHAPE_WAIT; break;
-    case SDL_SYSTEM_CURSOR_CROSSHAIR: shape = SCREEN_CURSOR_SHAPE_CROSS; break;
-    case SDL_SYSTEM_CURSOR_WAITARROW: shape = SCREEN_CURSOR_SHAPE_WAIT; break;
-    case SDL_SYSTEM_CURSOR_SIZENWSE:  shape = SCREEN_CURSOR_SHAPE_MOVE; break;
-    case SDL_SYSTEM_CURSOR_SIZENESW:  shape = SCREEN_CURSOR_SHAPE_MOVE; break;
-    case SDL_SYSTEM_CURSOR_SIZEWE:    shape = SCREEN_CURSOR_SHAPE_MOVE; break;
-    case SDL_SYSTEM_CURSOR_SIZENS:    shape = SCREEN_CURSOR_SHAPE_MOVE; break;
-    case SDL_SYSTEM_CURSOR_SIZEALL:   shape = SCREEN_CURSOR_SHAPE_MOVE; break;
-    case SDL_SYSTEM_CURSOR_NO:        shape = SCREEN_CURSOR_SHAPE_ARROW; break;
-    case SDL_SYSTEM_CURSOR_HAND:      shape = SCREEN_CURSOR_SHAPE_HAND; break;
+    case SDL_SYSTEM_CURSOR_DEFAULT:     shape = SCREEN_CURSOR_SHAPE_ARROW; break;
+    case SDL_SYSTEM_CURSOR_TEXT:        shape = SCREEN_CURSOR_SHAPE_IBEAM; break;
+    case SDL_SYSTEM_CURSOR_WAIT:        shape = SCREEN_CURSOR_SHAPE_WAIT; break;
+    case SDL_SYSTEM_CURSOR_CROSSHAIR:   shape = SCREEN_CURSOR_SHAPE_CROSS; break;
+    case SDL_SYSTEM_CURSOR_NWSE_RESIZE: shape = SCREEN_CURSOR_SHAPE_MOVE; break;
+    case SDL_SYSTEM_CURSOR_NESW_RESIZE: shape = SCREEN_CURSOR_SHAPE_MOVE; break;
+    case SDL_SYSTEM_CURSOR_EW_RESIZE:   shape = SCREEN_CURSOR_SHAPE_MOVE; break;
+    case SDL_SYSTEM_CURSOR_NS_RESIZE:   shape = SCREEN_CURSOR_SHAPE_MOVE; break;
+    case SDL_SYSTEM_CURSOR_MOVE:        shape = SCREEN_CURSOR_SHAPE_MOVE; break;
+    case SDL_SYSTEM_CURSOR_NOT_ALLOWED: shape = SCREEN_CURSOR_SHAPE_ARROW; break;
+    case SDL_SYSTEM_CURSOR_POINTER:     shape = SCREEN_CURSOR_SHAPE_HAND; break;
     }
 
     cursor = SDL_calloc(1, sizeof(SDL_Cursor));
     if (cursor) {
-        impl = SDL_calloc(1, sizeof(cursor_impl_t));;
+        impl = SDL_calloc(1, sizeof(SDL_CursorData));;
         if (impl == NULL) {
             free(cursor);
             SDL_OutOfMemory();
@@ -99,7 +97,7 @@ static SDL_Cursor *createSystemCursor(SDL_SystemCursor id)
 
         impl->session = session;
         impl->is_visible = 1;
-        cursor->driverdata = (void*)impl;
+        cursor->internal = (void*)impl;
     } else {
         SDL_OutOfMemory();
     }
@@ -109,14 +107,14 @@ static SDL_Cursor *createSystemCursor(SDL_SystemCursor id)
 
 static bool showCursor(SDL_Cursor * cursor)
 {
-    cursor_impl_t       *impl;
+    SDL_CursorData      *impl;
     screen_session_t    session;
     int shape;
 
     // SDL does not provide information about previous visibility to its
     // drivers. We need to track that ourselves.
     if (cursor) {
-        impl = (cursor_impl_t*)cursor->driverdata;
+        impl = (SDL_CursorData*)cursor->internal;
         if (impl->is_visible) {
             return true;
         }
@@ -128,7 +126,7 @@ static bool showCursor(SDL_Cursor * cursor)
         if (cursor == NULL) {
             return false;
         }
-        impl = (cursor_impl_t*)cursor->driverdata;
+        impl = (SDL_CursorData*)cursor->internal;
         if (!impl->is_visible) {
             return 0;
         }
@@ -146,14 +144,14 @@ static bool showCursor(SDL_Cursor * cursor)
 
 static void freeCursor(SDL_Cursor * cursor)
 {
-    cursor_impl_t *impl = (cursor_impl_t*)cursor->driverdata;
+    SDL_CursorData *impl = (SDL_CursorData*)cursor->internal;
 
     screen_destroy_session(impl->session);
     SDL_free(impl);
     SDL_free(cursor);
 }
 
-void initMouse(_THIS)
+void initMouse(SDL_VideoDevice *_this)
 {
     SDL_Mouse *mouse = SDL_GetMouse();
 

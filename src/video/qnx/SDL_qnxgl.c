@@ -33,7 +33,7 @@ struct DummyConfig
     int native_id;
 };
 
-static struct DummyConfig getDummyConfigFromScreenSettings(window_impl_t  *impl, int format)
+static struct DummyConfig getDummyConfigFromScreenSettings(SDL_WindowData  *impl, int format)
 {
     int rc;
     struct DummyConfig dummyConfig= {};
@@ -173,7 +173,7 @@ static int chooseFormat(EGLConfig egl_conf)
  * @param[out]  pformat The chosen pixel format
  * @return true if successful, false on error
  */
-bool glGetConfig(window_impl_t  *impl, int *pformat)
+bool glGetConfig(SDL_WindowData  *impl, int *pformat)
 {
     EGLConfig egl_conf = (EGLConfig)0;
     EGLConfig *egl_configs;
@@ -211,7 +211,6 @@ bool glGetConfig(window_impl_t  *impl, int *pformat)
     egl_conf = chooseConfig(dummyconfig, egl_configs, egl_num_configs);
 
     SDL_free(egl_configs);
-    *pconf = egl_conf;
 
     return true;
 }
@@ -257,7 +256,7 @@ SDL_FunctionPointer glGetProcAddress(SDL_VideoDevice *_this, const char *proc)
  */
 SDL_GLContext glCreateContext(SDL_VideoDevice *_this, SDL_Window *window)
 {
-    window_impl_t   *impl = (window_impl_t *)window->internal;
+    SDL_WindowData   *impl = (SDL_WindowData *)window->internal;
     EGLContext      context;
     EGLSurface      surface;
 
@@ -321,7 +320,7 @@ bool glSetSwapInterval(SDL_VideoDevice *_this, int interval)
 bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
 {
     // !!! FIXME: should we migrate this all over to use SDL_egl.c?
-    window_impl_t   *impl = (window_impl_t *)window->internal;
+    SDL_WindowData   *impl = (SDL_WindowData *)window->internal;
     {
         if (impl->resize) {
             EGLSurface surface;
@@ -365,11 +364,11 @@ bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
  */
 bool glMakeCurrent(SDL_VideoDevice *_this, SDL_Window *window, SDL_GLContext context)
 {
-    window_impl_t   *impl;
+    SDL_WindowData   *impl;
     EGLSurface      surface = NULL;
 
     if (window) {
-        impl = (window_impl_t *)window->internal;
+        impl = (SDL_WindowData *)window->internal;
         surface = impl->surface;
     }
 

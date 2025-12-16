@@ -19,11 +19,11 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "sdl_qnx.h"
+#include "SDL_qnx.h"
 #include "../../SDL_internal.h"
-#include "SDL_mouse.h"
-#include "SDL_events.h"
-#include "SDL_video.h"
+#include "SDL3/SDL_mouse.h"
+#include "SDL3/SDL_events.h"
+#include "SDL3/SDL_video.h"
 #include "../../events/SDL_mouse_c.h"
 
 static int previous = 0;
@@ -51,10 +51,9 @@ void handlePointerEvent(screen_event_t event)
     int              x_win = 0;
     int              y_win = 0;
 
+    Uint64           timestamp = SDL_GetTicksNS();
     SDL_Mouse        *mouse;
     SDL_Window       *window;
-    SDL_VideoDisplay *display;
-    SDL_DisplayMode  display_mode;
 
     screen_get_event_property_iv(event, SCREEN_PROPERTY_BUTTONS, &buttons);
     screen_get_event_property_iv(event, SCREEN_PROPERTY_MOUSE_WHEEL, &mouse_wheel);
@@ -64,11 +63,6 @@ void handlePointerEvent(screen_event_t event)
     mouse = SDL_GetMouse();
 
     window = mouse->focus;
-    display = SDL_GetDisplayForWindow(window);
-    if (display == NULL) {
-        return;
-    }
-    display_mode = display->current_mode;
 
     if ((window->x <= pos[0]) && (window->y <= pos[1])
         && (pos[0] < (window->x + window->w))
@@ -79,7 +73,7 @@ void handlePointerEvent(screen_event_t event)
         x_win = pos[0] - window->x;
         y_win = pos[1] - window->y;
 
-        SDL_SendMouseMotion(window, mouse->mouseID, 0, x_win, y_win);
+        SDL_SendMouseMotion(timestamp, window, SDL_GLOBAL_MOUSE_ID, 0, x_win, y_win);
 
         // Capture button presses
         for(int i = 0; i < 3; ++i)
@@ -87,14 +81,14 @@ void handlePointerEvent(screen_event_t event)
             int ret = screenToMouseButton((buttons^previous) & (1 << i));
             if(ret > 0)
             {
-                SDL_SendMouseButton(window, mouse->mouseID, (buttons & (1 << i))?SDL_PRESSED:SDL_RELEASED, ret);
+                SDL_SendMouseButton(timestamp, window, SDL_GLOBAL_MOUSE_ID, (bool) (buttons & (1 << i)), ret);
             }
         }
 
         // Capture mouse wheel
         // TODO: Verify this. I can at least confirm that this behaves the same
         //       way as x11.
-        SDL_SendMouseWheel(window, 0, (float) mouse_wheel, (float) mouse_h_wheel, SDL_MOUSEWHEEL_NORMAL);
+        SDL_SendMouseWheel(timestamp, window, 0, (float) mouse_wheel, (float) mouse_h_wheel, SDL_MOUSEWHEEL_NORMAL);
     }
 
     previous = buttons;

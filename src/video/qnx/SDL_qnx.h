@@ -26,7 +26,7 @@
 #include <screen/screen.h>
 #include <EGL/egl.h>
 
-typedef struct
+typedef struct SDL_WindowData
 {
     screen_window_t window;
     EGLSurface      surface;
@@ -34,20 +34,29 @@ typedef struct
     SDL_GLContext   context;
     int             resize;
     bool            has_focus;
-} window_impl_t;
+} SDL_WindowData;
+
+typedef struct SDL_CursorData
+{
+    screen_session_t session;
+    int              realized_shape;
+    int              is_visible;
+} SDL_CursorData;
 
 extern void handleKeyboardEvent(screen_event_t event);
+extern void handleJoystickEvent(screen_event_t event);
+extern void handlePointerEvent(screen_event_t event);
 
-extern bool glGetConfig(EGLConfig *pconf, int *pformat);
+extern bool glGetConfig(SDL_WindowData  *impl, int *pformat);
 extern bool glLoadLibrary(SDL_VideoDevice *_this, const char *name);
 extern SDL_FunctionPointer glGetProcAddress(SDL_VideoDevice *_this, const char *proc);
 extern SDL_GLContext glCreateContext(SDL_VideoDevice *_this, SDL_Window *window);
 extern bool glSetSwapInterval(SDL_VideoDevice *_this, int interval);
 extern bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window);
 extern bool glMakeCurrent(SDL_VideoDevice *_this, SDL_Window * window, SDL_GLContext context);
-extern void glDeleteContext(SDL_VideoDevice *_this, SDL_GLContext context);
+extern bool glDeleteContext(SDL_VideoDevice *_this, SDL_GLContext context);
 extern void glUnloadLibrary(SDL_VideoDevice *_this);
 
-extern void initMouse(_THIS);
+extern void initMouse(SDL_VideoDevice *_this);
 
 #endif
