@@ -30,6 +30,8 @@
 screen_context_t context;
 screen_event_t   event;
 
+bool initialized = false;
+
 /**
  * Initializes the QNX video plugin.
  * Creates the Screen context and event handles used for all window operations
@@ -46,6 +48,10 @@ static bool videoInit(SDL_VideoDevice *_this)
     int display_count, display_mode_count, active;
     screen_display_t *screen_display;
     screen_display_mode_t *screen_display_mode;
+
+    if (initialized) {
+        return true;
+    }
 
     if (screen_create_context(&context, 0) < 0) {
         return false;
@@ -141,6 +147,8 @@ static bool videoInit(SDL_VideoDevice *_this)
     SDL_AddKeyboard(SDL_DEFAULT_KEYBOARD_ID, NULL, false);
     SDL_AddMouse(SDL_DEFAULT_MOUSE_ID, NULL, false);
 
+    initialized = true;
+
     free(screen_display);
 
     return true;
@@ -148,8 +156,10 @@ static bool videoInit(SDL_VideoDevice *_this)
 
 static void videoQuit(SDL_VideoDevice *_this)
 {
-    screen_destroy_event(event);
-    screen_destroy_context(context);
+    if (initialized) {
+        screen_destroy_event(event);
+        screen_destroy_context(context);
+    }
 }
 
 /**
