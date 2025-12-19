@@ -29,8 +29,7 @@
 
 screen_context_t context;
 screen_event_t   event;
-
-bool initialized = false;
+static bool video_initialized = false;
 
 /**
  * Initializes the QNX video plugin.
@@ -49,7 +48,7 @@ static bool videoInit(SDL_VideoDevice *_this)
     screen_display_t *screen_display;
     screen_display_mode_t *screen_display_mode;
 
-    if (initialized) {
+    if (video_initialized) {
         return true;
     }
 
@@ -95,7 +94,7 @@ static bool videoInit(SDL_VideoDevice *_this)
             display_mode.w = size[0];
             display_mode.h = size[1];
             display_mode.refresh_rate = 60;
-            display_mode.format = SDL_PIXELFORMAT_RGBX8888;
+            display_mode.format = pixel_format;
             display_mode.internal = NULL;
 
             display.desktop_mode = display_mode;
@@ -128,7 +127,7 @@ static bool videoInit(SDL_VideoDevice *_this)
                 display_mode.w = screen_display_mode[index2].width;
                 display_mode.h = screen_display_mode[index2].height;
                 display_mode.refresh_rate = screen_display_mode[index2].refresh;
-                display_mode.format = SDL_PIXELFORMAT_RGBX8888;
+                display_mode.format = pixel_format;
 
                 if (SDL_AddFullscreenDisplayMode(&_this->displays[_this->num_displays-1], &display_mode) < 0) {
                     free(screen_display);
@@ -147,7 +146,7 @@ static bool videoInit(SDL_VideoDevice *_this)
     SDL_AddKeyboard(SDL_DEFAULT_KEYBOARD_ID, NULL, false);
     SDL_AddMouse(SDL_DEFAULT_MOUSE_ID, NULL, false);
 
-    initialized = true;
+    video_initialized = true;
 
     free(screen_display);
 
@@ -156,7 +155,7 @@ static bool videoInit(SDL_VideoDevice *_this)
 
 static void videoQuit(SDL_VideoDevice *_this)
 {
-    if (initialized) {
+    if (video_initialized) {
         screen_destroy_event(event);
         screen_destroy_context(context);
     }
@@ -172,6 +171,9 @@ static void videoQuit(SDL_VideoDevice *_this)
 static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props)
 {
     SDL_WindowData   *impl;
+    SDL_VideoDisplay *display = NULL;
+    SDL_DisplayMode  mode;
+
     int             size[2];
     int             numbufs;
     int             format;
@@ -202,10 +204,15 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propert
         goto fail;
     }
 
+    if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_FORMAT,
+                                      &format) < 0) {
+        goto fail;
+    }
+
     // Create window buffer(s).
     if (window->flags & SDL_WINDOW_OPENGL) {
-        // TODO: Format is hard-coded; can't change here
-        if (!glGetConfig(impl, &format)) {
+
+        if (!glInitConfig(&format)) {
             goto fail;
         }
         numbufs = 2;
@@ -216,8 +223,25 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propert
             return false;
         }
     } else {
-        format = SCREEN_FORMAT_RGBX8888;
+        screen_format = format;
+        pixel_format = screenToPixelFormat(screen_format);
+
         numbufs = 1;
+    }
+
+    // We now know what the pixel format is, so we need to provide it to the
+    // right SDL APIs.
+    display = SDL_GetVideoDisplayForWindow(window);
+    if (display) {
+        if (display->current_mode) {
+            SDL_copyp(&mode, display->current_mode);
+            mode.format = pixel_format;
+            SDL_SetCurrentDisplayMode(display, &mode);
+        } else {
+            printf("DEBUG PRINT, can't get mode\n");
+        }
+    } else {
+        printf("DEBUG PRINT, can't get display\n");
     }
 
     // Set pixel format.
@@ -290,7 +314,7 @@ static bool createWindowFramebuffer(SDL_VideoDevice *_this, SDL_Window * window,
         return false;
     }
 
-    *format = SDL_PIXELFORMAT_RGBX8888;
+    *format = pixel_format;
     return true;
 }
 

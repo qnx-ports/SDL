@@ -21,8 +21,12 @@
 
 #include "../../SDL_internal.h"
 #include "SDL_qnx.h"
+#include "SDL_qnxscreenconsts.h"
 
 static EGLDisplay   egl_disp;
+
+int                 screen_format = -1;
+SDL_PixelFormat     pixel_format = SDL_PIXELFORMAT_UNKNOWN;
 
 struct DummyConfig
 {
@@ -33,7 +37,7 @@ struct DummyConfig
     int native_id;
 };
 
-static struct DummyConfig getDummyConfigFromScreenSettings(SDL_WindowData  *impl, int format)
+static struct DummyConfig getDummyConfigFromScreenSettings(int format)
 {
     int rc;
     struct DummyConfig dummyConfig= {};
@@ -152,7 +156,7 @@ static int chooseFormat(EGLConfig egl_conf)
         case 32:
             return SCREEN_FORMAT_RGBX8888;
         case 24:
-            return SDL_PIXELFORMAT_RGB24;
+            return SCREEN_FORMAT_RGB888;
         case 16:
             switch (alpha_bit_depth) {
                 case 4:
@@ -167,13 +171,41 @@ static int chooseFormat(EGLConfig egl_conf)
     }
 }
 
+// All indeces not already assigned will be zero'd to SDL_PIXELFORMAT_UNKNOWN.
+//
+// TODO: Move this stuff into a different file...
+static const _format_map[] = {
+    [SCREEN_FORMAT_RGBA4444] = SDL_PIXELFORMAT_RGBA4444,
+    [SCREEN_FORMAT_RGBA5551] = SDL_PIXELFORMAT_RGBA5551,
+    [SCREEN_FORMAT_RGB565] = SDL_PIXELFORMAT_RGB565,
+    [SCREEN_FORMAT_RGBA8888] = SDL_PIXELFORMAT_RGBA8888,
+    [SCREEN_FORMAT_RGBX8888] = SDL_PIXELFORMAT_RGBX8888,
+    [SCREEN_FORMAT_NV12] = SDL_PIXELFORMAT_NV12,
+    [SCREEN_FORMAT_YV12] = SDL_PIXELFORMAT_YV12,
+    [SCREEN_FORMAT_UYVY] = SDL_PIXELFORMAT_UYVY,
+    [SCREEN_FORMAT_YUY2] = SDL_PIXELFORMAT_YUY2,
+    [SCREEN_FORMAT_YVYU] = SDL_PIXELFORMAT_YVYU,
+    [SCREEN_FORMAT_P010] = SDL_PIXELFORMAT_P010,
+    [SCREEN_FORMAT_BGRA8888] = SDL_PIXELFORMAT_BGRA8888,
+    [SCREEN_FORMAT_BGRX8888] = SDL_PIXELFORMAT_BGRX8888,
+};
+static const size_t _fm_size = sizeof(_format_map) / sizeof(_format_map[0]);
+
+SDL_PixelFormat screenToPixelFormat(int screen_format)
+{
+    if (screen_format >= _fm_size) {
+        return SDL_PIXELFORMAT_UNKNOWN;
+    }
+
+    return _format_map[screen_format];
+}
+
 /**
  * Enumerates the supported EGL configurations and chooses a suitable one.
- * @param[in]   impl    window implementation
  * @param[out]  pformat The chosen pixel format
  * @return true if successful, false on error
  */
-bool glGetConfig(SDL_WindowData  *impl, int *pformat)
+bool glInitConfig(int *pformat)
 {
     EGLConfig egl_conf = (EGLConfig)0;
     EGLConfig *egl_configs;
@@ -182,7 +214,7 @@ bool glGetConfig(SDL_WindowData  *impl, int *pformat)
     EGLBoolean rc;
     struct DummyConfig dummyconfig = {};
 
-    // Determine the numbfer of configurations.
+    // Determine the number of configurations.
     rc = eglGetConfigs(egl_disp, NULL, 0, &egl_num_configs);
     if (rc != EGL_TRUE) {
         return false;
@@ -205,10 +237,11 @@ bool glGetConfig(SDL_WindowData  *impl, int *pformat)
         SDL_free(egl_configs);
         return false;
     }
-    *pformat = SCREEN_FORMAT_RGBX8888;
 
-    dummyconfig = getDummyConfigFromScreenSettings(impl, SCREEN_FORMAT_RGBX8888);
+    dummyconfig = getDummyConfigFromScreenSettings(*pformat);
     egl_conf = chooseConfig(dummyconfig, egl_configs, egl_num_configs);
+    screen_format = chooseFormat(egl_conf);
+    pixel_format = screenToPixelFormat(screen_format);
 
     SDL_free(egl_configs);
 

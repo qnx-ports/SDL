@@ -21,5 +21,9 @@
 
 #include <screen/screen.h>
 
+// TODO: We would be better off with something akin to getters for these...
 extern screen_context_t context;
 extern screen_event_t   event;
+
+extern int              screen_format;
+extern SDL_PixelFormat  pixel_format;
