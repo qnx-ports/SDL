@@ -174,7 +174,7 @@ static int chooseFormat(EGLConfig egl_conf)
 // All indeces not already assigned will be zero'd to SDL_PIXELFORMAT_UNKNOWN.
 //
 // TODO: Move this stuff into a different file...
-static const _format_map[] = {
+static const SDL_PixelFormat _format_map[] = {
     [SCREEN_FORMAT_RGBA4444] = SDL_PIXELFORMAT_RGBA4444,
     [SCREEN_FORMAT_RGBA5551] = SDL_PIXELFORMAT_RGBA5551,
     [SCREEN_FORMAT_RGB565] = SDL_PIXELFORMAT_RGB565,
