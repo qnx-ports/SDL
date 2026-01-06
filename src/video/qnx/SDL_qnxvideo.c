@@ -99,7 +99,7 @@ static bool videoInit(SDL_VideoDevice *_this)
 
             display.desktop_mode = display_mode;
 
-            if (SDL_AddVideoDisplay(&display, false) < 0) {
+            if (!SDL_AddVideoDisplay(&display, false)) {
                 free(screen_display);
                 return false;
             }
@@ -122,6 +122,14 @@ static bool videoInit(SDL_VideoDevice *_this)
                 return false;
             }
 
+            SDL_zero(display_mode);
+            display_mode.w = screen_display_mode[0].width;
+            display_mode.h = screen_display_mode[0].height;
+            display_mode.refresh_rate = screen_display_mode[0].refresh;
+            display_mode.format = pixel_format;
+            _this->displays[_this->num_displays-1]->desktop_mode = display_mode;
+            SDL_SetCurrentDisplayMode(_this->displays[_this->num_displays-1], &display_mode);
+
             for (index2 = 0; index2 < display_mode_count; index2++) {
                 SDL_zero(display_mode);
                 display_mode.w = screen_display_mode[index2].width;
@@ -129,10 +137,8 @@ static bool videoInit(SDL_VideoDevice *_this)
                 display_mode.refresh_rate = screen_display_mode[index2].refresh;
                 display_mode.format = pixel_format;
 
-                if (SDL_AddFullscreenDisplayMode(&_this->displays[_this->num_displays-1], &display_mode) < 0) {
-                    free(screen_display);
-                    free(screen_display_mode);
-                    return false;
+                if (!SDL_AddFullscreenDisplayMode(_this->displays[_this->num_displays-1], &display_mode)) {
+                    break;
                 }
             }
 
@@ -158,6 +164,7 @@ static void videoQuit(SDL_VideoDevice *_this)
     if (video_initialized) {
         screen_destroy_event(event);
         screen_destroy_context(context);
+        video_initialized = false;
     }
 }
 
@@ -206,12 +213,11 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propert
 
     if (screen_get_window_property_iv(impl->window, SCREEN_PROPERTY_FORMAT,
                                       &format) < 0) {
-        goto fail;
+        format = SCREEN_FORMAT_RGBX8888;
     }
 
     // Create window buffer(s).
     if (window->flags & SDL_WINDOW_OPENGL) {
-
         if (!glInitConfig(&format)) {
             goto fail;
         }
@@ -236,12 +242,9 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propert
         if (display->current_mode) {
             SDL_copyp(&mode, display->current_mode);
             mode.format = pixel_format;
+            display->desktop_mode = mode;
             SDL_SetCurrentDisplayMode(display, &mode);
-        } else {
-            printf("DEBUG PRINT, can't get mode\n");
         }
-    } else {
-        printf("DEBUG PRINT, can't get display\n");
     }
 
     // Set pixel format.

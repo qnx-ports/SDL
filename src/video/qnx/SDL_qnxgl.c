@@ -25,8 +25,8 @@
 
 static EGLDisplay   egl_disp;
 
-int                 screen_format = -1;
-SDL_PixelFormat     pixel_format = SDL_PIXELFORMAT_UNKNOWN;
+int                 screen_format = SCREEN_FORMAT_RGBX8888;
+SDL_PixelFormat     pixel_format = SDL_PIXELFORMAT_BGRX8888;
 
 struct DummyConfig
 {
@@ -242,6 +242,7 @@ bool glInitConfig(int *pformat)
     egl_conf = chooseConfig(dummyconfig, egl_configs, egl_num_configs);
     screen_format = chooseFormat(egl_conf);
     pixel_format = screenToPixelFormat(screen_format);
+    *pformat = screen_format;
 
     SDL_free(egl_configs);
 
