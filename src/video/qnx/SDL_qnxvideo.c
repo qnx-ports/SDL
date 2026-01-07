@@ -27,6 +27,8 @@
 #include "SDL_qnx.h"
 #include "SDL_qnxscreenconsts.h"
 
+#include <errno.h>
+
 screen_context_t context;
 screen_event_t   event;
 static bool video_initialized = false;
@@ -218,7 +220,7 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propert
 
     // Create window buffer(s).
     if (window->flags & SDL_WINDOW_OPENGL) {
-        if (!glInitConfig(&format)) {
+        if (!glInitConfig(impl, &format)) {
             goto fail;
         }
         numbufs = 2;

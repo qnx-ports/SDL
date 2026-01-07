@@ -26,7 +26,7 @@
 static EGLDisplay   egl_disp;
 
 int                 screen_format = SCREEN_FORMAT_RGBX8888;
-SDL_PixelFormat     pixel_format = SDL_PIXELFORMAT_BGRX8888;
+SDL_PixelFormat     pixel_format = SDL_PIXELFORMAT_RGBX8888;
 
 struct DummyConfig
 {
@@ -189,11 +189,10 @@ static const SDL_PixelFormat _format_map[] = {
     [SCREEN_FORMAT_BGRA8888] = SDL_PIXELFORMAT_BGRA8888,
     [SCREEN_FORMAT_BGRX8888] = SDL_PIXELFORMAT_BGRX8888,
 };
-static const size_t _fm_size = sizeof(_format_map) / sizeof(_format_map[0]);
 
 SDL_PixelFormat screenToPixelFormat(int screen_format)
 {
-    if (screen_format >= _fm_size) {
+    if ((screen_format < 0) || (screen_format >= SDL_arraysize(_format_map))) {
         return SDL_PIXELFORMAT_UNKNOWN;
     }
 
@@ -205,7 +204,7 @@ SDL_PixelFormat screenToPixelFormat(int screen_format)
  * @param[out]  pformat The chosen pixel format
  * @return true if successful, false on error
  */
-bool glInitConfig(int *pformat)
+bool glInitConfig(SDL_WindowData *impl, int *pformat)
 {
     EGLConfig egl_conf = (EGLConfig)0;
     EGLConfig *egl_configs;
@@ -245,6 +244,7 @@ bool glInitConfig(int *pformat)
     *pformat = screen_format;
 
     SDL_free(egl_configs);
+    impl->conf = egl_conf;
 
     return true;
 }
@@ -327,6 +327,7 @@ SDL_GLContext glCreateContext(SDL_VideoDevice *_this, SDL_Window *window)
 
     impl->surface = surface;
     impl->context = context;
+
     return context;
 }
 
@@ -386,6 +387,7 @@ bool glSwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
             impl->resize = 0;
         }
     }
+
     return eglSwapBuffers(egl_disp, impl->surface) == EGL_TRUE ? true : false;
 }
 

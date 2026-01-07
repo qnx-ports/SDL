@@ -48,7 +48,7 @@ extern void handleJoystickEvent(screen_event_t event);
 extern void handlePointerEvent(screen_event_t event);
 
 extern SDL_PixelFormat screenToPixelFormat(int screen_format);
-extern bool glInitConfig(int *pformat);
+extern bool glInitConfig(SDL_WindowData *impl, int *pformat);
 extern bool glLoadLibrary(SDL_VideoDevice *_this, const char *name);
 extern SDL_FunctionPointer glGetProcAddress(SDL_VideoDevice *_this, const char *proc);
 extern SDL_GLContext glCreateContext(SDL_VideoDevice *_this, SDL_Window *window);
