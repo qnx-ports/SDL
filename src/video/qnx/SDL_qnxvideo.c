@@ -99,6 +99,7 @@ static bool videoInit(SDL_VideoDevice *_this)
             display_mode.format = pixel_format;
             display_mode.internal = NULL;
 
+            // Added to current_mode when the display is added.
             display.desktop_mode = display_mode;
 
             if (!SDL_AddVideoDisplay(&display, false)) {
@@ -123,14 +124,6 @@ static bool videoInit(SDL_VideoDevice *_this)
                 free(screen_display_mode);
                 return false;
             }
-
-            SDL_zero(display_mode);
-            display_mode.w = screen_display_mode[0].width;
-            display_mode.h = screen_display_mode[0].height;
-            display_mode.refresh_rate = screen_display_mode[0].refresh;
-            display_mode.format = pixel_format;
-            _this->displays[_this->num_displays-1]->desktop_mode = display_mode;
-            SDL_SetCurrentDisplayMode(_this->displays[_this->num_displays-1], &display_mode);
 
             for (index2 = 0; index2 < display_mode_count; index2++) {
                 SDL_zero(display_mode);
