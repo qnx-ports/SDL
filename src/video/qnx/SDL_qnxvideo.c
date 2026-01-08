@@ -387,6 +387,7 @@ static void pumpEvents(SDL_VideoDevice *_this)
             SDL_SendWindowEvent(window, (has_focus ? SDL_EVENT_WINDOW_MOUSE_ENTER : SDL_EVENT_WINDOW_MOUSE_LEAVE), 0, 0);
             // Update the SDL mouse to track the window it's focused on.
             SDL_SetMouseFocus(window);
+            SDL_SetKeyboardFocus(window);
         }
     }
 
