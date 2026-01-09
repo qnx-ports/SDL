@@ -328,6 +328,8 @@ SDL_GLContext glCreateContext(SDL_VideoDevice *_this, SDL_Window *window)
     impl->surface = surface;
     impl->context = context;
 
+    SDL_SetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_QNX_SURFACE_POINTER, impl->surface);
+
     return context;
 }
 

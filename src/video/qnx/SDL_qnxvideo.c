@@ -263,6 +263,9 @@ static bool createWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Propert
     }
 
     window->internal = impl;
+
+    SDL_SetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_QNX_WINDOW_POINTER, impl->window);
+
     return true;
 
 fail:
