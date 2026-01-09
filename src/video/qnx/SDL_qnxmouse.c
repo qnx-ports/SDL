@@ -151,14 +151,43 @@ static void freeCursor(SDL_Cursor * cursor)
     SDL_free(cursor);
 }
 
+static bool setRelativeMouseMode(bool enabled)
+{
+    // We're tracking rel-position explicitly, but this is still needed so
+    // SDL_SetRelativeMouseMode() & friends aren't a no-op.
+    //
+    // TODO: It may be possible to achieve this using SCREEN_PROPERTY_DISPLACEMENT instead.
+    return true;
+}
+
 void initMouse(SDL_VideoDevice *_this)
 {
-    SDL_Mouse *mouse = SDL_GetMouse();
+    SDL_Mouse       *mouse = SDL_GetMouse();
+    SDL_MouseData   *mouse_data;
+
+    mouse_data = (SDL_MouseData *)SDL_calloc(1, sizeof(SDL_MouseData));
+    if (mouse_data == NULL) {
+        return;
+    }
+    SDL_zerop(mouse_data);
+    mouse->internal = mouse_data;
 
     mouse->CreateCursor = createCursor;
     mouse->CreateSystemCursor = createSystemCursor;
     mouse->ShowCursor = showCursor;
     mouse->FreeCursor = freeCursor;
 
+    mouse->SetRelativeMouseMode = setRelativeMouseMode;
+
     SDL_SetDefaultCursor(createCursor(NULL, 0, 0));
+}
+
+void quitMouse(SDL_VideoDevice *_this)
+{
+    SDL_Mouse *mouse = SDL_GetMouse();
+
+    if (mouse->internal != NULL) {
+        SDL_free(mouse->internal);
+        mouse->internal = NULL;
+    }
 }

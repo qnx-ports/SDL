@@ -160,6 +160,8 @@ static void videoQuit(SDL_VideoDevice *_this)
         screen_destroy_event(event);
         screen_destroy_context(context);
         video_initialized = false;
+
+        quitMouse(_this);
     }
 }
 

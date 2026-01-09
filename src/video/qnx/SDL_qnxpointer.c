@@ -26,9 +26,8 @@
 #include "SDL3/SDL_video.h"
 #include "../../events/SDL_mouse_c.h"
 
-static int previous = 0;
 
-int screenToMouseButton(int x)
+static Uint8 screenToMouseButton(int x)
 {
     //Screen only supports 3 mouse buttons.
     switch(x){
@@ -53,6 +52,7 @@ void handlePointerEvent(screen_event_t event)
 
     Uint64           timestamp = SDL_GetTicksNS();
     SDL_Mouse        *mouse;
+    SDL_MouseData    *mouse_data;
     SDL_Window       *window;
 
     screen_get_event_property_iv(event, SCREEN_PROPERTY_BUTTONS, &buttons);
@@ -63,26 +63,35 @@ void handlePointerEvent(screen_event_t event)
     mouse = SDL_GetMouse();
 
     window = mouse->focus;
+    mouse_data = mouse->internal;
+    if (mouse_data == NULL) {
+        return;
+    }
 
-    if ((window->x <= pos[0]) && (window->y <= pos[1])
+    if (window && (window->x <= pos[0]) && (window->y <= pos[1])
         && (pos[0] < (window->x + window->w))
         && (pos[1] < (window->y + window->h))) {
         // Capture movement
         // Scale from position relative to display to position relative to window.
-        // TODO: We're ignoring the positibility of centered windows.
         x_win = pos[0] - window->x;
         y_win = pos[1] - window->y;
 
-        SDL_SendMouseMotion(timestamp, window, SDL_GLOBAL_MOUSE_ID, 0, x_win, y_win);
+        // SDL wants us to track the relative position of the mouse separately
+        // from its internals for some reason...
+        if (mouse->relative_mode) {
+            SDL_SendMouseMotion(timestamp, window, SDL_DEFAULT_MOUSE_ID, true, x_win - mouse_data->x_prev, y_win - mouse_data->y_prev);
+        } else {
+            SDL_SendMouseMotion(timestamp, window, SDL_DEFAULT_MOUSE_ID, false, x_win, y_win);
+        }
+
+        mouse_data->x_prev = x_win;
+        mouse_data->y_prev = y_win;
 
         // Capture button presses
-        for(int i = 0; i < 3; ++i)
+        for (int i = 0; i < 3; ++i)
         {
-            int ret = screenToMouseButton((buttons^previous) & (1 << i));
-            if(ret > 0)
-            {
-                SDL_SendMouseButton(timestamp, window, SDL_GLOBAL_MOUSE_ID, (bool) (buttons & (1 << i)), ret);
-            }
+            Uint8 ret = screenToMouseButton(1 << i);
+            SDL_SendMouseButton(timestamp, window, SDL_DEFAULT_MOUSE_ID, ret, (bool) ((buttons & (1 << i)) == (1 << i)));
         }
 
         // Capture mouse wheel
@@ -90,6 +99,4 @@ void handlePointerEvent(screen_event_t event)
         //       way as x11.
         SDL_SendMouseWheel(timestamp, window, 0, (float) mouse_wheel, (float) mouse_h_wheel, SDL_MOUSEWHEEL_NORMAL);
     }
-
-    previous = buttons;
 }

@@ -43,6 +43,12 @@ typedef struct SDL_CursorData
     int              is_visible;
 } SDL_CursorData;
 
+typedef struct SDL_MouseData
+{
+    int      x_prev;
+    int      y_prev;
+} SDL_MouseData;
+
 extern void handleKeyboardEvent(screen_event_t event);
 extern void handleJoystickEvent(screen_event_t event);
 extern void handlePointerEvent(screen_event_t event);
@@ -59,5 +65,6 @@ extern bool glDeleteContext(SDL_VideoDevice *_this, SDL_GLContext context);
 extern void glUnloadLibrary(SDL_VideoDevice *_this);
 
 extern void initMouse(SDL_VideoDevice *_this);
+extern void quitMouse(SDL_VideoDevice *_this);
 
 #endif
