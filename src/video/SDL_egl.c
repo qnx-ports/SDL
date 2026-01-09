@@ -101,6 +101,8 @@
 // QNX
 #define DEFAULT_EGL        "libEGL.so.1"
 #define DEFAULT_OGL_ES2    "libGLESv2.so.1"
+#define DEFAULT_OGL_ES_PVR "libGLESv2.so.1"
+#define DEFAULT_OGL_ES    "libGLESv2.so.1"
 
 #else
 // Desktop Linux/Unix-like
