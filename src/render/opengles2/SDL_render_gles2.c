@@ -28,6 +28,11 @@
 #include "../../video/SDL_pixels_c.h"
 #include "SDL_shaders_gles2.h"
 
+#if defined(SDL_PLATFORM_QNXNTO)
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+#endif
+
 /* WebGL doesn't offer client-side arrays, so use Vertex Buffer Objects
    on Emscripten, which converts GLES2 into WebGL calls.
    In all other cases, attempt to use client-side arrays, as they tend to
@@ -2140,6 +2145,13 @@ static bool GLES2_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, RENDERER_CONTEXT_MAJOR);
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, RENDERER_CONTEXT_MINOR);
+
+#if defined(SDL_PLATFORM_QNXNTO)
+        const char *driver_name = SDL_GetHint(SDL_HINT_VIDEO_DRIVER);
+        if(driver_name && strcmp(driver_name, "wayland") == 0) {
+            SDL_GL_SetAttribute(SDL_GL_EGL_PLATFORM, EGL_PLATFORM_WAYLAND_EXT);
+        }
+#endif
 
         if (!SDL_RecreateWindow(window, (window_flags & ~(SDL_WINDOW_VULKAN | SDL_WINDOW_METAL)) | SDL_WINDOW_OPENGL)) {
             goto error;
