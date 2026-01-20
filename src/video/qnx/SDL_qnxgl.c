@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 2025 BlackBerry Limited
+  Copyright (C) 2026 BlackBerry Limited
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,14 +19,10 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "../../SDL_internal.h"
+#include "SDL_internal.h"
 #include "SDL_qnx.h"
-#include "SDL_qnxscreenconsts.h"
 
 static EGLDisplay   egl_disp;
-
-int                 screen_format = SCREEN_FORMAT_RGBX8888;
-SDL_PixelFormat     pixel_format = SDL_PIXELFORMAT_RGBX8888;
 
 struct DummyConfig
 {
@@ -39,7 +35,6 @@ struct DummyConfig
 
 static struct DummyConfig getDummyConfigFromScreenSettings(int format)
 {
-    int rc;
     struct DummyConfig dummyConfig= {};
 
     dummyConfig.native_id = format;
@@ -120,7 +115,6 @@ static EGLConfig chooseConfig(struct DummyConfig dummyConfig, EGLConfig* egl_con
            continue;
         }
 
-
         eglGetConfigAttrib(egl_disp, egl_configs[ii], EGL_ALPHA_SIZE, &val);
         if (val != dummyConfig.alpha_size) {
             continue;
@@ -171,34 +165,6 @@ static int chooseFormat(EGLConfig egl_conf)
     }
 }
 
-// All indeces not already assigned will be zero'd to SDL_PIXELFORMAT_UNKNOWN.
-//
-// TODO: Move this stuff into a different file...
-static const SDL_PixelFormat _format_map[] = {
-    [SCREEN_FORMAT_RGBA4444] = SDL_PIXELFORMAT_RGBA4444,
-    [SCREEN_FORMAT_RGBA5551] = SDL_PIXELFORMAT_RGBA5551,
-    [SCREEN_FORMAT_RGB565] = SDL_PIXELFORMAT_RGB565,
-    [SCREEN_FORMAT_RGBA8888] = SDL_PIXELFORMAT_RGBA8888,
-    [SCREEN_FORMAT_RGBX8888] = SDL_PIXELFORMAT_RGBX8888,
-    [SCREEN_FORMAT_NV12] = SDL_PIXELFORMAT_NV12,
-    [SCREEN_FORMAT_YV12] = SDL_PIXELFORMAT_YV12,
-    [SCREEN_FORMAT_UYVY] = SDL_PIXELFORMAT_UYVY,
-    [SCREEN_FORMAT_YUY2] = SDL_PIXELFORMAT_YUY2,
-    [SCREEN_FORMAT_YVYU] = SDL_PIXELFORMAT_YVYU,
-    [SCREEN_FORMAT_P010] = SDL_PIXELFORMAT_P010,
-    [SCREEN_FORMAT_BGRA8888] = SDL_PIXELFORMAT_BGRA8888,
-    [SCREEN_FORMAT_BGRX8888] = SDL_PIXELFORMAT_BGRX8888,
-};
-
-SDL_PixelFormat screenToPixelFormat(int screen_format)
-{
-    if ((screen_format < 0) || (screen_format >= SDL_arraysize(_format_map))) {
-        return SDL_PIXELFORMAT_UNKNOWN;
-    }
-
-    return _format_map[screen_format];
-}
-
 /**
  * Enumerates the supported EGL configurations and chooses a suitable one.
  * @param[out]  pformat The chosen pixel format
@@ -209,7 +175,6 @@ bool glInitConfig(SDL_WindowData *impl, int *pformat)
     EGLConfig egl_conf = (EGLConfig)0;
     EGLConfig *egl_configs;
     EGLint egl_num_configs;
-    EGLint val;
     EGLBoolean rc;
     struct DummyConfig dummyconfig = {};
 
@@ -239,9 +204,7 @@ bool glInitConfig(SDL_WindowData *impl, int *pformat)
 
     dummyconfig = getDummyConfigFromScreenSettings(*pformat);
     egl_conf = chooseConfig(dummyconfig, egl_configs, egl_num_configs);
-    screen_format = chooseFormat(egl_conf);
-    pixel_format = screenToPixelFormat(screen_format);
-    *pformat = screen_format;
+    *pformat = chooseFormat(egl_conf);
 
     SDL_free(egl_configs);
     impl->conf = egl_conf;

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 2025 BlackBerry Limited
+  Copyright (C) 2026 BlackBerry Limited
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -19,8 +19,8 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include "SDL_internal.h"
 #include "SDL_qnx.h"
-#include "../../SDL_internal.h"
 #include "SDL3/SDL_mouse.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_video.h"
@@ -47,8 +47,6 @@ void handlePointerEvent(screen_event_t event)
     int              mouse_wheel = 0;
     int              mouse_h_wheel = 0;
     int              pos[2] = {0,0};
-    int              x_win = 0;
-    int              y_win = 0;
 
     Uint64           timestamp = SDL_GetTicksNS();
     SDL_Mouse        *mouse;
@@ -68,35 +66,24 @@ void handlePointerEvent(screen_event_t event)
         return;
     }
 
-    if (window && (window->x <= pos[0]) && (window->y <= pos[1])
-        && (pos[0] < (window->x + window->w))
-        && (pos[1] < (window->y + window->h))) {
-        // Capture movement
-        // Scale from position relative to display to position relative to window.
-        x_win = pos[0] - window->x;
-        y_win = pos[1] - window->y;
-
-        // SDL wants us to track the relative position of the mouse separately
-        // from its internals for some reason...
-        if (mouse->relative_mode) {
-            SDL_SendMouseMotion(timestamp, window, SDL_DEFAULT_MOUSE_ID, true, x_win - mouse_data->x_prev, y_win - mouse_data->y_prev);
-        } else {
-            SDL_SendMouseMotion(timestamp, window, SDL_DEFAULT_MOUSE_ID, false, x_win, y_win);
-        }
-
-        mouse_data->x_prev = x_win;
-        mouse_data->y_prev = y_win;
-
-        // Capture button presses
-        for (int i = 0; i < 3; ++i)
-        {
-            Uint8 ret = screenToMouseButton(1 << i);
-            SDL_SendMouseButton(timestamp, window, SDL_DEFAULT_MOUSE_ID, ret, (bool) ((buttons & (1 << i)) == (1 << i)));
-        }
-
-        // Capture mouse wheel
-        // TODO: Verify this. I can at least confirm that this behaves the same
-        //       way as x11.
-        SDL_SendMouseWheel(timestamp, window, 0, (float) mouse_wheel, (float) mouse_h_wheel, SDL_MOUSEWHEEL_NORMAL);
+    if (mouse->relative_mode) {
+        SDL_SendMouseMotion(timestamp, window, SDL_DEFAULT_MOUSE_ID, true, pos[0] - mouse_data->x_prev, pos[1] - mouse_data->y_prev);
+    } else {
+        SDL_SendMouseMotion(timestamp, window, SDL_DEFAULT_MOUSE_ID, false, pos[0], pos[1]);
     }
+
+    mouse_data->x_prev = pos[0];
+    mouse_data->y_prev = pos[1];
+
+    // Capture button presses
+    for (int i = 0; i < 3; ++i)
+    {
+        Uint8 ret = screenToMouseButton(1 << i);
+        SDL_SendMouseButton(timestamp, window, SDL_DEFAULT_MOUSE_ID, ret, (bool) ((buttons & (1 << i)) == (1 << i)));
+    }
+
+    // Capture mouse wheel
+    // TODO: Verify this. I can at least confirm that this behaves the same
+    //       way as x11.
+    SDL_SendMouseWheel(timestamp, window, 0, (float) mouse_wheel, (float) mouse_h_wheel, SDL_MOUSEWHEEL_NORMAL);
 }
