@@ -510,6 +510,13 @@ static void pumpEvents(SDL_VideoDevice *_this)
             handlePointerEvent(event);
             break;
 
+#ifdef SDL_JOYSTICK_QNX
+        case SCREEN_EVENT_GAMEPAD:
+        case SCREEN_EVENT_JOYSTICK:
+            handleJoystickEvent(event);
+            break;
+#endif
+
         default:
             break;
         }
@@ -642,5 +649,6 @@ static SDL_VideoDevice *createDevice(void)
 VideoBootStrap QNX_bootstrap = {
     "qnx", "QNX Screen",
     createDevice,
-    NULL // no ShowMessageBox implementation
+    NULL, // no ShowMessageBox implementation
+    false
 };

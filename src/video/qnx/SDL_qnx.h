@@ -64,6 +64,7 @@ extern screen_context_t * getContext();
 extern screen_event_t * getEvent();
 
 extern void handleKeyboardEvent(screen_event_t event);
+extern void handleJoystickEvent(screen_event_t event);
 extern void handlePointerEvent(screen_event_t event);
 
 extern bool glInitConfig(SDL_WindowData *impl, int *pformat);
