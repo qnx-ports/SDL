@@ -84,7 +84,7 @@ static int (*ALSA_snd_pcm_reset)(snd_pcm_t *);
 static int (*ALSA_snd_device_name_hint)(int, const char *, void ***);
 static char *(*ALSA_snd_device_name_get_hint)(const void *, const char *);
 static int (*ALSA_snd_device_name_free_hint)(void **);
-static snd_pcm_sframes_t (*ALSA_snd_pcm_avail)(snd_pcm_t *);
+static int32_t (*ALSA_snd_pcm_avail_delay)(snd_pcm_t *, snd_pcm_sframes_t *, snd_pcm_sframes_t *);
 static size_t (*ALSA_snd_ctl_card_info_sizeof)(void);
 static size_t (*ALSA_snd_pcm_info_sizeof)(void);
 static int (*ALSA_snd_card_next)(int*);
@@ -174,7 +174,7 @@ static bool load_alsa_syms(void)
     SDL_ALSA_SYM(snd_device_name_hint);
     SDL_ALSA_SYM(snd_device_name_get_hint);
     SDL_ALSA_SYM(snd_device_name_free_hint);
-    SDL_ALSA_SYM(snd_pcm_avail);
+    SDL_ALSA_SYM(snd_pcm_avail_delay);
     SDL_ALSA_SYM(snd_ctl_card_info_sizeof);
     SDL_ALSA_SYM(snd_pcm_info_sizeof);
     SDL_ALSA_SYM(snd_card_next);
@@ -387,13 +387,13 @@ static bool ALSA_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int bu
         if (rc < 0) {
             SDL_assert(rc != -EAGAIN);  // assuming this can't happen if we used snd_pcm_wait and queried for available space. snd_pcm_recover won't handle it!
             const int status = ALSA_snd_pcm_recover(device->hidden->pcm, rc, 0);
-            if (status < 0) {
+             if (status < 0) {
                 // Hmm, not much we can do - abort
                 SDL_LogError(SDL_LOG_CATEGORY_AUDIO, "ALSA write failed (unrecoverable): %s", ALSA_snd_strerror(rc));
-                return false;
-            }
-            continue;
-        }
+                 return false;
+             }
+             continue;
+         }
 
         sample_buf += rc * frame_size;
         frames_left -= rc;
@@ -404,20 +404,22 @@ static bool ALSA_PlayDevice(SDL_AudioDevice *device, const Uint8 *buffer, int bu
 
 static Uint8 *ALSA_GetDeviceBuf(SDL_AudioDevice *device, int *buffer_size)
 {
-    snd_pcm_sframes_t rc = ALSA_snd_pcm_avail(device->hidden->pcm);
-    if (rc <= 0) {
+    snd_pcm_sframes_t avail_frames;
+    snd_pcm_sframes_t delay_frames;
+    int32_t rc = ALSA_snd_pcm_avail_delay(device->hidden->pcm, &avail_frames, &delay_frames);
+    if (rc < 0) {
         // Wait a bit and try again, maybe the hardware isn't quite ready yet?
         SDL_Delay(1);
 
-        rc = ALSA_snd_pcm_avail(device->hidden->pcm);
-        if (rc <= 0) {
+        rc = ALSA_snd_pcm_avail_delay(device->hidden->pcm, &avail_frames, &delay_frames);
+        if (rc < 0) {
             // We'll catch it next time
             *buffer_size = 0;
             return NULL;
         }
     }
 
-    const int requested_frames = SDL_min(device->sample_frames, rc);
+    const int requested_frames = SDL_min(device->sample_frames, avail_frames);
     const int requested_bytes = requested_frames * SDL_AUDIO_FRAMESIZE(device->spec);
     SDL_assert(requested_bytes <= *buffer_size);
     //SDL_LogInfo(SDL_LOG_CATEGORY_AUDIO, "ALSA GETDEVICEBUF: NEED %d BYTES", requested_bytes);
@@ -430,7 +432,10 @@ static int ALSA_RecordDevice(SDL_AudioDevice *device, void *buffer, int buflen)
     const int frame_size = SDL_AUDIO_FRAMESIZE(device->spec);
     SDL_assert((buflen % frame_size) == 0);
 
-    const snd_pcm_sframes_t total_available = ALSA_snd_pcm_avail(device->hidden->pcm);
+    snd_pcm_sframes_t total_available;
+    snd_pcm_sframes_t total_delay;
+
+    ALSA_snd_pcm_avail_delay(device->hidden->pcm, &total_available, &total_delay);
     const int total_frames = SDL_min(buflen / frame_size, total_available);
 
     const int rc = ALSA_snd_pcm_readi(device->hidden->pcm, buffer, total_frames);
@@ -1021,12 +1026,16 @@ static int ALSA_pcm_cfg_hw_chans_n_scan(struct ALSA_pcm_cfg_ctx *ctx, unsigned i
         //==========================================================================================
         // Here the alsa pcm is in SND_PCM_STATE_PREPARED state, let's figure out a good fit for
         // SDL channel map, it may request to change the target number of channels though.
+#ifndef SDL_PLATFORM_QNXNTO
         status = alsa_chmap_cfg(ctx);
         if (status < 0) {
             return status; // we forward the SDL error
         } else if (status == CHMAP_INSTALLED) {
             return CHANS_N_CONFIGURED; // we are finished here
         }
+#else
+        return CHANS_N_CONFIGURED;
+#endif
 
         // status == CHANS_N_NEXT
         ALSA_snd_pcm_free_chmaps(ctx->chmap_queries);
