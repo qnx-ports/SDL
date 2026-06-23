@@ -122,6 +122,40 @@ static char *search_path_for_binary(const char *bin)
 }
 #endif
 
+#if defined(__QNXNTO__) || defined(__QNX__ )
+char *SDL_GetBasePath(void)
+{
+    const char *cmdname = _cmdname(NULL);
+    if (!cmdname) {
+        return NULL;
+    }
+
+    /* Find the last path separator to isolate the directory */
+    const char *last_sep = SDL_strrchr(cmdname, '/');
+    if (!last_sep) {
+        /* No separator found: executable is in current directory */
+        char *basepath = SDL_strdup("./");
+        if (!basepath) {
+            SDL_OutOfMemory();
+        }
+        return basepath;
+    }
+
+    /* Length of the directory portion, including the trailing slash */
+    size_t len = (size_t)(last_sep - cmdname) + 1;
+
+    char *basepath = (char *)SDL_malloc(len + 1);
+    if (!basepath) {
+        SDL_OutOfMemory();
+        return NULL;
+    }
+
+    SDL_memcpy(basepath, cmdname, len);
+    basepath[len] = '\0';
+
+    return basepath;
+}
+#else
 char *SDL_SYS_GetBasePath(void)
 {
     char *result = NULL;
@@ -255,6 +289,7 @@ char *SDL_SYS_GetBasePath(void)
 
     return result;
 }
+#endif
 
 char *SDL_SYS_GetPrefPath(const char *org, const char *app)
 {
