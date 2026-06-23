@@ -123,6 +123,16 @@ SDL_GetBasePath(void)
         }
     }
 #endif
+#if defined(__QNX__) || defined(__QNXNTO__)
+    const char *path = _cmdname(NULL);
+    if(path != NULL) {
+        retval = SDL_strdup(path);
+        if (!retval) {
+            SDL_OutOfMemory();
+            return NULL;
+        }
+    }
+#endif
 
     /* is a Linux-style /proc filesystem available? */
     if (!retval && (access("/proc", F_OK) == 0)) {
