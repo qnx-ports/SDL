@@ -194,6 +194,15 @@ char *SDL_SYS_GetBasePath(void)
         SDL_free(cmdline);
     }
 #endif
+#if defined(__QNX__) || defined(__QNXNTO__)
+    const char *path = _cmdname(NULL);
+    if(path != NULL) {
+        result = SDL_strdup(path);
+        if (!result) {
+            return NULL;
+        }
+    }
+#endif
 
     // is a Linux-style /proc filesystem available?
     if (!result && (access("/proc", F_OK) == 0)) {
@@ -206,6 +215,8 @@ char *SDL_SYS_GetBasePath(void)
         result = readSymLink("/proc/curproc/exe");
 #elif defined(SDL_PLATFORM_SOLARIS)
         result = readSymLink("/proc/self/path/a.out");
+#elif defined(__QNX__) || defined(__QNXNTO__)
+        result = SDL_LoadFile("/proc/self/exefile", NULL);
 #else
         result = readSymLink("/proc/self/exe"); // linux.
         if (!result) {

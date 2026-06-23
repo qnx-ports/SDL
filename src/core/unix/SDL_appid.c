@@ -51,6 +51,16 @@ const char *SDL_GetExeName(void)
                 proc_name = linkfile;
             }
         }
+#elif defined(SDL_PLATFORM_QNXNTO)
+        const char *cmdname = _cmdname(NULL);
+        if (cmdname) {
+            proc_name = SDL_strrchr(cmdname, '/');
+            if (proc_name) {
+                ++proc_name;
+            } else {
+                proc_name = cmdname;
+            }
+        }
 #endif
     }
 
