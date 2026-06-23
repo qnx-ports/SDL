@@ -43,6 +43,8 @@
 #include "SDL_filesystem.h"
 #include "SDL_rwops.h"
 
+/* QNX's /proc/self/exefile is a text file and not a symlink. */
+#if !defined(__QNX__) && !defined(__QNXNTO__)
 static char *
 readSymLink(const char *path)
 {
@@ -74,42 +76,8 @@ readSymLink(const char *path)
     SDL_free(retval);
     return NULL;
 }
+#endif
 
-#if defined(__QNX__) || defined(__QNXNTO__)
-char *SDL_GetBasePath(void)
-{
-    const char *cmdname = _cmdname(NULL);
-    if (!cmdname) {
-        return NULL;
-    }
-
-    /* Find the last path separator to isolate the directory */
-    const char *last_sep = SDL_strrchr(cmdname, '/');
-    if (!last_sep) {
-        /* No separator found: executable is in current directory */
-        char *basepath = SDL_strdup("./");
-        if (!basepath) {
-            SDL_OutOfMemory();
-            return NULL;
-        }
-        return basepath;
-    }
-
-    /* Length of the directory portion, including the trailing slash */
-    size_t len = (size_t)(last_sep - cmdname) + 1;
-
-    char *basepath = (char *)SDL_malloc(len + 1);
-    if (!basepath) {
-        SDL_OutOfMemory();
-        return NULL;
-    }
-
-    SDL_memcpy(basepath, cmdname, len);
-    basepath[len] = '\0';
-
-    return basepath;
-}
-#else
 char *
 SDL_GetBasePath(void)
 {
@@ -155,6 +123,16 @@ SDL_GetBasePath(void)
         }
     }
 #endif
+#if defined(__QNX__) || defined(__QNXNTO__)
+    const char *path = _cmdname(NULL);
+    if(path != NULL) {
+        retval = SDL_strdup(path);
+        if (!retval) {
+            SDL_OutOfMemory();
+            return NULL;
+        }
+    }
+#endif
 
     /* is a Linux-style /proc filesystem available? */
     if (!retval && (access("/proc", F_OK) == 0)) {
@@ -165,6 +143,8 @@ SDL_GetBasePath(void)
         retval = readSymLink("/proc/curproc/file");
 #elif defined(__NETBSD__)
         retval = readSymLink("/proc/curproc/exe");
+#elif defined(__QNX__) || defined(__QNXNTO__)
+        retval = SDL_LoadFile("/proc/self/exefile", NULL);
 #else
         retval = readSymLink("/proc/self/exe");  /* linux. */
         if (retval == NULL) {
@@ -202,7 +182,6 @@ SDL_GetBasePath(void)
 
     return retval;
 }
-#endif
 
 char *
 SDL_GetPrefPath(const char *org, const char *app)
